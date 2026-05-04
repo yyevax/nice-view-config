@@ -8,6 +8,13 @@
 #include <zephyr/kernel.h>
 #include <zephyr/random/random.h>
 
+LV_IMG_DECLARE(wagashi);
+
+const lv_img_dsc_t *anim_imgs[] = {
+    &wagashi,
+};
+
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
