@@ -15,96 +15,95 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.AUTH_DISPLAY }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AUTH_DISPLAY }}
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install Pillow
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install Pillow
 
-    - name: Check for left and right images
-      id: check_images
-      run: |
-        if [ -f "assets/left.png" ] && [ -f "assets/right.png" ]; then
-          echo "images_exist=true" >> $GITHUB_OUTPUT
-          echo "Found assets/left.png and assets/right.png"
-        else
-          echo "images_exist=false" >> $GITHUB_OUTPUT
-          echo "Missing assets/left.png or assets/right.png"
-        fi
+      - name: Check for left and right images
+        id: check_images
+        run: |
+          if [ -f "assets/left.png" ] && [ -f "assets/right.png" ]; then
+            echo "images_exist=true" >> $GITHUB_OUTPUT
+            echo "Found assets/left.png and assets/right.png"
+          else
+            echo "images_exist=false" >> $GITHUB_OUTPUT
+            echo "Missing assets/left.png or assets/right.png"
+          fi
 
-    - name: Convert left and right images to C arrays
-      if: steps.check_images.outputs.images_exist == 'true'
-      run: |
-        mkdir -p converted
+      - name: Convert left and right images to C arrays
+        if: steps.check_images.outputs.images_exist == 'true'
+        run: |
+          mkdir -p converted
+          python3 scripts/niceview_lvgl_convert.py assets/left.png --outdir converted
+          python3 scripts/niceview_lvgl_convert.py assets/right.png --outdir converted
 
-        python3 scripts/niceview_lvgl_convert.py assets/left.png --outdir converted
-        python3 scripts/niceview_lvgl_convert.py assets/right.png --outdir converted
+      - name: Generate left.c and right.c files
+        if: steps.check_images.outputs.images_exist == 'true'
+        run: |
+          cat > boards/shields/nice_view_xavient/widgets/left.c << 'EOF'
+          #include <lvgl.h>
 
-        - name: Generate left.c and right.c files
-      if: steps.check_images.outputs.images_exist == 'true'
-      run: |
-        cat > boards/shields/nice_view_xavient/widgets/left.c << 'EOF'
-        #include <lvgl.h>
+          #ifndef LV_ATTRIBUTE_MEM_ALIGN
+          #define LV_ATTRIBUTE_MEM_ALIGN
+          #endif
 
-        #ifndef LV_ATTRIBUTE_MEM_ALIGN
-        #define LV_ATTRIBUTE_MEM_ALIGN
-        #endif
+          #ifndef LV_ATTRIBUTE_LARGE_CONST
+          #define LV_ATTRIBUTE_LARGE_CONST
+          #endif
 
-        #ifndef LV_ATTRIBUTE_LARGE_CONST
-        #define LV_ATTRIBUTE_LARGE_CONST
-        #endif
+          #ifndef LV_ATTRIBUTE_IMG_LEFT
+          #define LV_ATTRIBUTE_IMG_LEFT
+          #endif
 
-        #ifndef LV_ATTRIBUTE_IMG_LEFT
-        #define LV_ATTRIBUTE_IMG_LEFT
-        #endif
+          EOF
 
-        EOF
+          sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_LARGE_CONST/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_LEFT/,/#endif/d' converted/left.c >> boards/shields/nice_view_xavient/widgets/left.c
 
-        sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_LEFT/,/#endif/d' converted/left.c >> boards/shields/nice_view_xavient/widgets/left.c
+          cat > boards/shields/nice_view_xavient/widgets/right.c << 'EOF'
+          #include <lvgl.h>
 
-        cat > boards/shields/nice_view_xavient/widgets/right.c << 'EOF'
-        #include <lvgl.h>
+          #ifndef LV_ATTRIBUTE_MEM_ALIGN
+          #define LV_ATTRIBUTE_MEM_ALIGN
+          #endif
 
-        #ifndef LV_ATTRIBUTE_MEM_ALIGN
-        #define LV_ATTRIBUTE_MEM_ALIGN
-        #endif
+          #ifndef LV_ATTRIBUTE_LARGE_CONST
+          #define LV_ATTRIBUTE_LARGE_CONST
+          #endif
 
-        #ifndef LV_ATTRIBUTE_LARGE_CONST
-        #define LV_ATTRIBUTE_LARGE_CONST
-        #endif
+          #ifndef LV_ATTRIBUTE_IMG_RIGHT
+          #define LV_ATTRIBUTE_IMG_RIGHT
+          #endif
 
-        #ifndef LV_ATTRIBUTE_IMG_RIGHT
-        #define LV_ATTRIBUTE_IMG_RIGHT
-        #endif
+          EOF
 
-        EOF
+          sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_LARGE_CONST/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_RIGHT/,/#endif/d' converted/right.c >> boards/shields/nice_view_xavient/widgets/right.c
 
-        sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_RIGHT/,/#endif/d' converted/right.c >> boards/shields/nice_view_xavient/widgets/right.c
+      - name: Commit and push changes
+        if: steps.check_images.outputs.images_exist == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
 
-    - name: Commit and push changes
-      if: steps.check_images.outputs.images_exist == 'true'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+          git add boards/shields/nice_view_xavient/widgets/left.c
+          git add boards/shields/nice_view_xavient/widgets/right.c
 
-        git add boards/shields/nice_view_xavient/widgets/left.c
-        git add boards/shields/nice_view_xavient/widgets/right.c
-
-        if git diff --staged --quiet; then
-          echo "No changes to commit"
-        else
-          git commit -m "🤖 Auto-update Nice!View left and right images."
-          git push
-        fi
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🤖 Auto-update Nice!View left and right images."
+            git push
+          fi
 
   trigger-zmk-build:
     needs: update-images
@@ -112,10 +111,10 @@ jobs:
     if: success()
 
     steps:
-    - name: Trigger zmk-config-xavient build
-      env:
-        GH_TOKEN: ${{ secrets.ZMK_CONFIG_PAT }}
-      run: |
-        gh workflow run "Build ZMK firmware" \
-          --repo yyevax/zmk-config-xavient \
-          --ref experimental/zmk-studio-3x6-displays
+      - name: Trigger zmk-config-xavient build
+        env:
+          GH_TOKEN: ${{ secrets.ZMK_CONFIG_PAT }}
+        run: |
+          gh workflow run "Build ZMK firmware" \
+            --repo yyevax/zmk-config-xavient \
+            --ref experimental/zmk-studio-3x6-displays
