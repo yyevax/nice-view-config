@@ -93,6 +93,6 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.ZMK_CONFIG_PAT }}
       run: |
-        gh workflow run build.yml \
+        gh workflow run "Build ZMK firmware" \
           --repo yyevax/zmk-config-xavient \
           --ref experimental/zmk-studio-3x6-displays
