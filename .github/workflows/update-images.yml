@@ -49,24 +49,11 @@ jobs:
         python3 scripts/niceview_lvgl_convert.py assets/left.png --outdir converted
         python3 scripts/niceview_lvgl_convert.py assets/right.png --outdir converted
 
-    - name: Generate art.c file
+    - name: Generate left.c and right.c files
       if: steps.check_images.outputs.images_exist == 'true'
       run: |
-        cat > boards/shields/nice_view_xavient/widgets/art.c << 'EOF'
-        #include <lvgl.h>
-
-        #ifndef LV_ATTRIBUTE_MEM_ALIGN
-        #define LV_ATTRIBUTE_MEM_ALIGN
-        #endif
-
-        EOF
-
-        for file in converted/left.c converted/right.c; do
-          if [ -f "$file" ]; then
-            cat "$file" >> boards/shields/nice_view_xavient/widgets/art.c
-            echo "" >> boards/shields/nice_view_xavient/widgets/art.c
-          fi
-        done
+        cp converted/left.c boards/shields/nice_view_xavient/widgets/left.c
+        cp converted/right.c boards/shields/nice_view_xavient/widgets/right.c
 
     - name: Commit and push changes
       if: steps.check_images.outputs.images_exist == 'true'
@@ -74,7 +61,8 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
 
-        git add boards/shields/nice_view_xavient/widgets/art.c
+        git add boards/shields/nice_view_xavient/widgets/left.c
+        git add boards/shields/nice_view_xavient/widgets/right.c
 
         if git diff --staged --quiet; then
           echo "No changes to commit"
