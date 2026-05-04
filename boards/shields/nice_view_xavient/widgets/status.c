@@ -66,7 +66,7 @@ static void draw_top(lv_obj_t *widget, const struct status_state *state) {
     lv_canvas_fill_bg(canvas, LVGL_BACKGROUND, LV_OPA_COVER);
 
     // Draw battery
-    draw_battery(canvas, state);
+    pct_battery(canvas, state);
 
     // Draw output status
     char output_text[10] = {};
