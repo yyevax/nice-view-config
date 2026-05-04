@@ -3,7 +3,8 @@ name: Update Nice!View Images
 on:
   push:
     paths:
-      - 'assets/**'
+      - 'assets/left.png'
+      - 'assets/right.png'
   workflow_dispatch:
 
 permissions:
@@ -29,30 +30,28 @@ jobs:
         python -m pip install --upgrade pip
         pip install Pillow
 
-    - name: Check for images in assets folder
+    - name: Check for left and right images
       id: check_images
       run: |
-        if [ -d "assets" ] && [ "$(find assets -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) | wc -l)" -gt 0 ]; then
+        if [ -f "assets/left.png" ] && [ -f "assets/right.png" ]; then
           echo "images_exist=true" >> $GITHUB_OUTPUT
-          echo "Found images in assets folder"
+          echo "Found assets/left.png and assets/right.png"
         else
           echo "images_exist=false" >> $GITHUB_OUTPUT
-          echo "No images found in assets folder"
+          echo "Missing assets/left.png or assets/right.png"
         fi
 
-    - name: Convert images to C arrays
+    - name: Convert left and right images to C arrays
       if: steps.check_images.outputs.images_exist == 'true'
       run: |
-        # Create output directory for converted files
         mkdir -p converted
 
-        # Convert all images in assets folder
-        find assets -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) -exec python3 scripts/niceview_lvgl_convert.py {} --outdir converted \;
+        python3 scripts/niceview_lvgl_convert.py assets/left.png --outdir converted
+        python3 scripts/niceview_lvgl_convert.py assets/right.png --outdir converted
 
     - name: Generate art.c file
       if: steps.check_images.outputs.images_exist == 'true'
       run: |
-        # Start building the new art.c file
         cat > boards/shields/nice_view_xavient/widgets/art.c << 'EOF'
         #include <lvgl.h>
 
@@ -62,72 +61,12 @@ jobs:
 
         EOF
 
-        # Process each converted file
-        for file in converted/*.c; do
+        for file in converted/left.c converted/right.c; do
           if [ -f "$file" ]; then
             cat "$file" >> boards/shields/nice_view_xavient/widgets/art.c
             echo "" >> boards/shields/nice_view_xavient/widgets/art.c
           fi
         done
-
-    - name: Update peripheral_status.c (replace LV_IMG_DECLARE + anim_imgs array)
-      if: steps.check_images.outputs.images_exist == 'true'
-      run: |
-        python3 << 'EOF'
-        import re
-        from pathlib import Path
-
-        converted_dir = Path("converted")
-        peripheral_file = Path("boards/shields/nice_view_xavient/widgets/peripheral_status.c")
-
-        if not peripheral_file.exists():
-            print("peripheral_status.c not found; skipping.")
-            exit(0)
-
-        # Collect converted image stems (deterministic order)
-        converted = sorted([p.stem for p in converted_dir.glob("*.c")])
-        if not converted:
-            print("No converted images; skipping peripheral_status.c modifications.")
-            exit(0)
-
-        content = peripheral_file.read_text(encoding="utf-8")
-
-        # Build new declarations block
-        decl_block = "\n".join(f"LV_IMG_DECLARE({stem});" for stem in converted)
-
-        # Build new anim_imgs array
-        anim_array = "const lv_img_dsc_t *anim_imgs[] = {\n" + \
-                     "".join(f"    &{stem},\n" for stem in converted) + \
-                     "};"
-
-        replacement_block = f"{decl_block}\n\n{anim_array}"
-
-        # Regex to find existing declarations + anim_imgs array
-        # Matches one or more LV_IMG_DECLARE(...) lines followed by the anim_imgs array definition.
-        pattern = re.compile(
-            r'(?:LV_IMG_DECLARE\([^)]+\);\s*)+\nconst\s+lv_img_dsc_t\s*\*\s*anim_imgs\[\]\s*=\s*\{.*?\};',
-            re.DOTALL
-        )
-
-        if pattern.search(content):
-            new_content = pattern.sub(replacement_block, content)
-            print("Replaced existing LV_IMG_DECLARE + anim_imgs block.")
-        else:
-            # Fallback: insert after last #include line
-            include_pattern = re.compile(r'(#include[^\n]+\n)+', re.DOTALL)
-            m = include_pattern.search(content)
-            if m:
-                idx = m.end()
-                new_content = content[:idx] + "\n" + replacement_block + "\n\n" + content[idx:]
-                print("Inserted declarations + anim_imgs block after includes (previous block not found).")
-            else:
-                # As a last resort, prepend
-                new_content = replacement_block + "\n\n" + content
-                print("Prepended declarations + anim_imgs block (includes not found).")
-
-        peripheral_file.write_text(new_content, encoding="utf-8")
-        print(f"Updated peripheral_status.c with {len(converted)} images.")
-        EOF
 
     - name: Commit and push changes
       if: steps.check_images.outputs.images_exist == 'true'
@@ -136,11 +75,10 @@ jobs:
         git config --local user.name "GitHub Action"
 
         git add boards/shields/nice_view_xavient/widgets/art.c
-        git add boards/shields/nice_view_xavient/widgets/peripheral_status.c
 
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
-            git commit -m "🤖 Auto-update Nice!View images and peripheral_status declarations."
-            git push
+          git commit -m "🤖 Auto-update Nice!View left and right images."
+          git push
         fi
