@@ -1,3 +1,5 @@
+#include <lvgl.h>
+
 #ifndef LV_ATTRIBUTE_IMG_LEFT
 #define LV_ATTRIBUTE_IMG_LEFT
 #endif
@@ -116,7 +118,7 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_LEFT uint
     0x16, 0xA4, 0x55, 0xEF, 0x52, 0x81, 0x50, 0x52, 0x48, 0x07, 0xB6, 0xB0
 };
 
-const lv_img_dsc_t left = {
+const lv_image_dsc_t left = {
     .header.cf = LV_COLOR_FORMAT_I1,
 
     .header.w = 140,
