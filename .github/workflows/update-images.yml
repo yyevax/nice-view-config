@@ -49,11 +49,46 @@ jobs:
         python3 scripts/niceview_lvgl_convert.py assets/left.png --outdir converted
         python3 scripts/niceview_lvgl_convert.py assets/right.png --outdir converted
 
-    - name: Generate left.c and right.c files
+        - name: Generate left.c and right.c files
       if: steps.check_images.outputs.images_exist == 'true'
       run: |
-        cp converted/left.c boards/shields/nice_view_xavient/widgets/left.c
-        cp converted/right.c boards/shields/nice_view_xavient/widgets/right.c
+        cat > boards/shields/nice_view_xavient/widgets/left.c << 'EOF'
+        #include <lvgl.h>
+
+        #ifndef LV_ATTRIBUTE_MEM_ALIGN
+        #define LV_ATTRIBUTE_MEM_ALIGN
+        #endif
+
+        #ifndef LV_ATTRIBUTE_LARGE_CONST
+        #define LV_ATTRIBUTE_LARGE_CONST
+        #endif
+
+        #ifndef LV_ATTRIBUTE_IMG_LEFT
+        #define LV_ATTRIBUTE_IMG_LEFT
+        #endif
+
+        EOF
+
+        sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_LEFT/,/#endif/d' converted/left.c >> boards/shields/nice_view_xavient/widgets/left.c
+
+        cat > boards/shields/nice_view_xavient/widgets/right.c << 'EOF'
+        #include <lvgl.h>
+
+        #ifndef LV_ATTRIBUTE_MEM_ALIGN
+        #define LV_ATTRIBUTE_MEM_ALIGN
+        #endif
+
+        #ifndef LV_ATTRIBUTE_LARGE_CONST
+        #define LV_ATTRIBUTE_LARGE_CONST
+        #endif
+
+        #ifndef LV_ATTRIBUTE_IMG_RIGHT
+        #define LV_ATTRIBUTE_IMG_RIGHT
+        #endif
+
+        EOF
+
+        sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_RIGHT/,/#endif/d' converted/right.c >> boards/shields/nice_view_xavient/widgets/right.c
 
     - name: Commit and push changes
       if: steps.check_images.outputs.images_exist == 'true'
