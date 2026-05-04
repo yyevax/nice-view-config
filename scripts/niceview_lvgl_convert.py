@@ -99,9 +99,8 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_{macro_na
 }};
 
 const lv_img_dsc_t {img_var_name} = {{
-    .header.cf = LV_IMG_CF_INDEXED_1BIT,
-    .header.always_zero = 0,
-    .header.reserved = 0,
+    .header.cf = LV_COLOR_FORMAT_I1,
+
     .header.w = {width},
     .header.h = {height},
     .data_size = sizeof({array_name}),
