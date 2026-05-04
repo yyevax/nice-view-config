@@ -8,6 +8,15 @@
 #include <zephyr/kernel.h>
 #include <zephyr/random/random.h>
 
+LV_IMG_DECLARE(left);
+LV_IMG_DECLARE(right);
+
+const lv_img_dsc_t *anim_imgs[] = {
+    &left,
+    &right,
+};
+
+
 
 
 #include <zephyr/logging/log.h>
