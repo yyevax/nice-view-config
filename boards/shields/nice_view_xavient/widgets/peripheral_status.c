@@ -8,6 +8,30 @@
 #include <zephyr/kernel.h>
 #include <zephyr/random/random.h>
 
+LV_IMAGE_DECLARE(image1);
+LV_IMAGE_DECLARE(image2);
+LV_IMAGE_DECLARE(image3);
+LV_IMAGE_DECLARE(image4);
+LV_IMAGE_DECLARE(image5);
+LV_IMAGE_DECLARE(image6);
+LV_IMAGE_DECLARE(image1);
+LV_IMAGE_DECLARE(image2);
+
+const lv_image_dsc_t *left_anim_imgs[] = {
+    &image1,
+    &image2,
+    &image3,
+    &image4,
+    &image5,
+    &image6,
+};
+
+const lv_image_dsc_t *right_anim_imgs[] = {
+    &image1,
+    &image2,
+};
+
+
 LV_IMG_DECLARE(image1);
 LV_IMG_DECLARE(image2);
 LV_IMG_DECLARE(image3);
