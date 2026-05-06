@@ -24,6 +24,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 // AUTO-GENERATED SLIDESHOW IMAGES START
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
+
 LV_IMAGE_DECLARE(left_image1);
 LV_IMAGE_DECLARE(left_image2);
 LV_IMAGE_DECLARE(left_image3);
@@ -39,8 +40,11 @@ static const lv_image_dsc_t *anim_imgs[] = {
     &left_image5,
     &left_image6,
 };
+
 #define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
+
 #else
+
 LV_IMAGE_DECLARE(right_image1);
 LV_IMAGE_DECLARE(right_image2);
 
@@ -48,7 +52,13 @@ static const lv_image_dsc_t *anim_imgs[] = {
     &right_image1,
     &right_image2,
 };
+
+#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT
+
+#endif
 // AUTO-GENERATED SLIDESHOW IMAGES END
+
+
 
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
 LV_IMAGE_DECLARE(left);
