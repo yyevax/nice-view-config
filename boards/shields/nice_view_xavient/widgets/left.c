@@ -1,17 +1,41 @@
 #include <lvgl.h>
 
-#ifndef LV_ATTRIBUTE_MEM_ALIGN
-#define LV_ATTRIBUTE_MEM_ALIGN
+#ifndef LV_ATTRIBUTE_IMG_LEFT_IMAGE1
+#define LV_ATTRIBUTE_IMG_LEFT_IMAGE1
+#endif
+
+#ifndef LV_ATTRIBUTE_IMG_LEFT_IMAGE2
+#define LV_ATTRIBUTE_IMG_LEFT_IMAGE2
+#endif
+
+#ifndef LV_ATTRIBUTE_IMG_LEFT_IMAGE3
+#define LV_ATTRIBUTE_IMG_LEFT_IMAGE3
+#endif
+
+#ifndef LV_ATTRIBUTE_IMG_LEFT_IMAGE4
+#define LV_ATTRIBUTE_IMG_LEFT_IMAGE4
+#endif
+
+#ifndef LV_ATTRIBUTE_IMG_LEFT_IMAGE5
+#define LV_ATTRIBUTE_IMG_LEFT_IMAGE5
+#endif
+
+#ifndef LV_ATTRIBUTE_IMG_LEFT_IMAGE6
+#define LV_ATTRIBUTE_IMG_LEFT_IMAGE6
 #endif
 
 #ifndef LV_ATTRIBUTE_LARGE_CONST
 #define LV_ATTRIBUTE_LARGE_CONST
 #endif
 
-#ifndef LV_ATTRIBUTE_IMG_LEFT
-#define LV_ATTRIBUTE_IMG_LEFT
+#ifndef LV_ATTRIBUTE_MEM_ALIGN
+#define LV_ATTRIBUTE_MEM_ALIGN
 #endif
 
+
+#ifndef LV_ATTRIBUTE_IMG_LEFT_IMAGE1
+#define LV_ATTRIBUTE_IMG_LEFT_IMAGE1
+#endif
 
 const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_LEFT_IMAGE1 uint8_t
     left_image1_map[] = {
@@ -136,6 +160,9 @@ const lv_img_dsc_t left_image1 = {
     .data = left_image1_map,
 };
 
+#ifndef LV_ATTRIBUTE_IMG_LEFT_IMAGE2
+#define LV_ATTRIBUTE_IMG_LEFT_IMAGE2
+#endif
 
 const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_LEFT_IMAGE2 uint8_t
     left_image2_map[] = {
@@ -260,6 +287,9 @@ const lv_img_dsc_t left_image2 = {
     .data = left_image2_map,
 };
 
+#ifndef LV_ATTRIBUTE_IMG_LEFT_IMAGE3
+#define LV_ATTRIBUTE_IMG_LEFT_IMAGE3
+#endif
 
 const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_LEFT_IMAGE3 uint8_t
     left_image3_map[] = {
@@ -384,6 +414,9 @@ const lv_img_dsc_t left_image3 = {
     .data = left_image3_map,
 };
 
+#ifndef LV_ATTRIBUTE_IMG_LEFT_IMAGE4
+#define LV_ATTRIBUTE_IMG_LEFT_IMAGE4
+#endif
 
 const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_LEFT_IMAGE4 uint8_t
     left_image4_map[] = {
@@ -508,6 +541,9 @@ const lv_img_dsc_t left_image4 = {
     .data = left_image4_map,
 };
 
+#ifndef LV_ATTRIBUTE_IMG_LEFT_IMAGE5
+#define LV_ATTRIBUTE_IMG_LEFT_IMAGE5
+#endif
 
 const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_LEFT_IMAGE5 uint8_t
     left_image5_map[] = {
@@ -632,6 +668,9 @@ const lv_img_dsc_t left_image5 = {
     .data = left_image5_map,
 };
 
+#ifndef LV_ATTRIBUTE_IMG_LEFT_IMAGE6
+#define LV_ATTRIBUTE_IMG_LEFT_IMAGE6
+#endif
 
 const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_LEFT_IMAGE6 uint8_t
     left_image6_map[] = {
@@ -755,4 +794,3 @@ const lv_img_dsc_t left_image6 = {
     .data_size = sizeof(left_image6_map),
     .data = left_image6_map,
 };
-

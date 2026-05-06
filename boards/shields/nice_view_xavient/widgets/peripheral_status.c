@@ -29,7 +29,6 @@ LV_IMAGE_DECLARE(left_image3);
 LV_IMAGE_DECLARE(left_image4);
 LV_IMAGE_DECLARE(left_image5);
 LV_IMAGE_DECLARE(left_image6);
-
 LV_IMAGE_DECLARE(right_image1);
 LV_IMAGE_DECLARE(right_image2);
 
@@ -47,6 +46,8 @@ static const lv_image_dsc_t *right_anim_imgs[] = {
     &right_image2,
 };
 // AUTO-GENERATED SLIDESHOW IMAGES END
+
+
 
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
 LV_IMAGE_DECLARE(left);
