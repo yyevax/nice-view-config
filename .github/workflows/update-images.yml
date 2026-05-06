@@ -193,47 +193,47 @@ jobs:
           old_init_pattern = re.compile(
               r"""uint32_t rand = sys_rand32_get\(\);\s*
 
-\s*widget->align_left = rand & 0x1;
-\s*widget->art = art;
-\s*widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
+              \s*widget->align_left = rand & 0x1;
+              \s*widget->art = art;
+              \s*widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
 
-\s*const lv_image_dsc_t \*\*initial_imgs = widget->align_left \? left_anim_imgs : right_anim_imgs;
+              \s*const lv_image_dsc_t \*\*initial_imgs = widget->align_left \? left_anim_imgs : right_anim_imgs;
 
-\s*const size_t initial_count = widget->align_left \?
-\s*\(sizeof\(left_anim_imgs\) / sizeof\(left_anim_imgs\[0\]\)\) :
-\s*\(sizeof\(right_anim_imgs\) / sizeof\(right_anim_imgs\[0\]\)\);
+              \s*const size_t initial_count = widget->align_left \?
+              \s*\(sizeof\(left_anim_imgs\) / sizeof\(left_anim_imgs\[0\]\)\) :
+              \s*\(sizeof\(right_anim_imgs\) / sizeof\(right_anim_imgs\[0\]\)\);
 
-\s*widget->slide_index = initial_count \? rand % initial_count : 0;
+              \s*widget->slide_index = initial_count \? rand % initial_count : 0;
 
-\s*if \(initial_count > 0\) {
-\s*lv_image_set_src\(art, initial_imgs\[widget->slide_index\]\);
-\s*} else {
-\s*lv_image_set_src\(art, &PERIPHERAL_IMAGE\);
-\s*}
+              \s*if \(initial_count > 0\) {
+              \s*lv_image_set_src\(art, initial_imgs\[widget->slide_index\]\);
+              \s*} else {
+              \s*lv_image_set_src\(art, &PERIPHERAL_IMAGE\);
+              \s*}
 
-\s*lv_obj_align\(art,
-\s*widget->align_left \? LV_ALIGN_TOP_LEFT : LV_ALIGN_TOP_RIGHT,
-\s*0,
-\s*0\);""",
+              \s*lv_obj_align\(art,
+              \s*widget->align_left \? LV_ALIGN_TOP_LEFT : LV_ALIGN_TOP_RIGHT,
+              \s*0,
+              \s*0\);""",
               re.DOTALL,
           )
 
           new_init_block = """uint32_t rand = sys_rand32_get();
 
-    widget->art = art;
-    widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
+          widget->art = art;
+          widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
 
-    const size_t slide_count = sizeof(anim_imgs) / sizeof(anim_imgs[0]);
+          const size_t slide_count = sizeof(anim_imgs) / sizeof(anim_imgs[0]);
 
-    widget->slide_index = slide_count ? rand % slide_count : 0;
+          widget->slide_index = slide_count ? rand % slide_count : 0;
 
-    if (slide_count > 0) {
-        lv_image_set_src(art, anim_imgs[widget->slide_index]);
-    } else {
-        lv_image_set_src(art, &PERIPHERAL_IMAGE);
-    }
+          if (slide_count > 0) {
+              lv_image_set_src(art, anim_imgs[widget->slide_index]);
+          } else {
+              lv_image_set_src(art, &PERIPHERAL_IMAGE);
+          }
 
-    lv_obj_align(art, PERIPHERAL_ALIGN, 0, 0);"""
+          lv_obj_align(art, PERIPHERAL_ALIGN, 0, 0);"""
 
           content, replacements = old_init_pattern.subn(new_init_block, content)
 
