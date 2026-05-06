@@ -23,7 +23,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include "peripheral_status.h"
 
 // AUTO-GENERATED SLIDESHOW IMAGES START
-#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
+#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
 
 LV_IMAGE_DECLARE(left_image1);
 LV_IMAGE_DECLARE(left_image2);
@@ -43,6 +43,18 @@ static const lv_image_dsc_t *anim_imgs[] = {
 
 #define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
 
+#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
+
+LV_IMAGE_DECLARE(right_image1);
+LV_IMAGE_DECLARE(right_image2);
+
+static const lv_image_dsc_t *anim_imgs[] = {
+    &right_image1,
+    &right_image2,
+};
+
+#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT
+
 #else
 
 LV_IMAGE_DECLARE(right_image1);
@@ -57,6 +69,8 @@ static const lv_image_dsc_t *anim_imgs[] = {
 
 #endif
 // AUTO-GENERATED SLIDESHOW IMAGES END
+
+
 
 
 
