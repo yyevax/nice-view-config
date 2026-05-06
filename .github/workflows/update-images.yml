@@ -3,8 +3,8 @@ name: Update Nice!View Images
 on:
   push:
     paths:
-      - 'assets/left.png'
-      - 'assets/right.png'
+      - 'assets/left/**'
+      - 'assets/right/**'
   workflow_dispatch:
 
 permissions:
@@ -134,14 +134,14 @@ jobs:
 
           content = peripheral_file.read_text(encoding="utf-8")
 
-          decl_block = "\n".join(f"LV_IMG_DECLARE({stem});" for stem in left_images + right_images)
+          decl_block = "\n".join(f"LV_IMAGE_DECLARE({stem});" for stem in left_images + right_images)
           left_anim_array = (
-              "const lv_img_dsc_t *left_anim_imgs[] = {\n" +
+              "const lv_image_dsc_t *left_anim_imgs[] = {\n" +
               "".join(f"    &{stem},\n" for stem in left_images) +
               "};"
           )
           right_anim_array = (
-              "const lv_img_dsc_t *right_anim_imgs[] = {\n" +
+              "const lv_image_dsc_t *right_anim_imgs[] = {\n" +
               "".join(f"    &{stem},\n" for stem in right_images) +
               "};"
           )
@@ -183,14 +183,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-              git commit -m "🤖 Auto-update left/right slideshow images and peripheral_status declarations."
-              git push
-          fi
-
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "🤖 Auto-update Nice!View left and right images."
+            git commit -m "🤖 Auto-update left/right slideshow images and peripheral_status declarations."
             git push
           fi
 
