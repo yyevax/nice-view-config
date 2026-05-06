@@ -167,10 +167,14 @@ jobs:
 
           generated_block = (
               "// AUTO-GENERATED SLIDESHOW IMAGES START\n"
-              "#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)\n\n"
+              "#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)\n\n"
               f"{declare_images(left_images)}\n\n"
               f"{image_array(left_images)}\n\n"
               "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
+              "#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)\n\n"
+              f"{declare_images(right_images)}\n\n"
+              f"{image_array(right_images)}\n\n"
+              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT\n\n"
               "#else\n\n"
               f"{declare_images(right_images)}\n\n"
               f"{image_array(right_images)}\n\n"
