@@ -60,55 +60,68 @@ jobs:
       - name: Generate left.c and right.c files
         if: steps.check_images.outputs.images_exist == 'true'
         run: |
-          cat > boards/shields/nice_view_xavient/widgets/left.c << 'EOF'
-          #include <lvgl.h>
+          python3 <<'PY'
+          from pathlib import Path
+          import re
 
-          #ifndef LV_ATTRIBUTE_MEM_ALIGN
-          #define LV_ATTRIBUTE_MEM_ALIGN
-          #endif
+          def generate_combined_file(side):
+              converted_dir = Path(f"converted/{side}")
+              output_file = Path(f"boards/shields/nice_view_xavient/widgets/{side}.c")
 
-          #ifndef LV_ATTRIBUTE_LARGE_CONST
-          #define LV_ATTRIBUTE_LARGE_CONST
-          #endif
+              files = sorted(converted_dir.glob("*.c"))
 
-          #ifndef LV_ATTRIBUTE_IMG_LEFT
-          #define LV_ATTRIBUTE_IMG_LEFT
-          #endif
+              body_parts = []
+              macros = {
+                  "LV_ATTRIBUTE_MEM_ALIGN",
+                  "LV_ATTRIBUTE_LARGE_CONST",
+              }
 
-          EOF
+              for file in files:
+                  text = file.read_text(encoding="utf-8")
 
-          # Process each converted left file
-          for file in converted/left/*.c; do
-            if [ -f "$file" ]; then
-              sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_LARGE_CONST/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_LEFT/,/#endif/d' "$file" >> boards/shields/nice_view_xavient/widgets/left.c
-              echo "" >> boards/shields/nice_view_xavient/widgets/left.c
-            fi
-          done
+                  # Remove duplicate lvgl includes and existing generic macro guards.
+                  text = re.sub(r'^\s*#include\s+<lvgl\.h>\s*\n?', '', text, flags=re.MULTILINE)
+                  text = re.sub(
+                      r'\s*#ifndef\s+LV_ATTRIBUTE_MEM_ALIGN\s*\n\s*#define\s+LV_ATTRIBUTE_MEM_ALIGN\s*\n\s*#endif\s*\n?',
+                      '\n',
+                      text,
+                      flags=re.MULTILINE,
+                  )
+                  text = re.sub(
+                      r'\s*#ifndef\s+LV_ATTRIBUTE_LARGE_CONST\s*\n\s*#define\s+LV_ATTRIBUTE_LARGE_CONST\s*\n\s*#endif\s*\n?',
+                      '\n',
+                      text,
+                      flags=re.MULTILINE,
+                  )
 
-          cat > boards/shields/nice_view_xavient/widgets/right.c << 'EOF'
-          #include <lvgl.h>
+                  # Collect every LV_ATTRIBUTE_IMG_* macro actually used.
+                  macros.update(re.findall(r'\bLV_ATTRIBUTE_IMG_[A-Za-z0-9_]+\b', text))
 
-          #ifndef LV_ATTRIBUTE_MEM_ALIGN
-          #define LV_ATTRIBUTE_MEM_ALIGN
-          #endif
+                  body_parts.append(text.strip())
 
-          #ifndef LV_ATTRIBUTE_LARGE_CONST
-          #define LV_ATTRIBUTE_LARGE_CONST
-          #endif
+              header = [
+                  "#include <lvgl.h>",
+                  "",
+              ]
 
-          #ifndef LV_ATTRIBUTE_IMG_RIGHT
-          #define LV_ATTRIBUTE_IMG_RIGHT
-          #endif
+              for macro in sorted(macros):
+                  header.extend([
+                      f"#ifndef {macro}",
+                      f"#define {macro}",
+                      "#endif",
+                      "",
+                  ])
 
-          EOF
+              output_file.write_text(
+                  "\n".join(header) + "\n\n" + "\n\n".join(body_parts) + "\n",
+                  encoding="utf-8",
+              )
 
-          # Process each converted right file
-          for file in converted/right/*.c; do
-            if [ -f "$file" ]; then
-              sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_LARGE_CONST/,/#endif/d' "$file" >> boards/shields/nice_view_xavient/widgets/right.c
-              echo "" >> boards/shields/nice_view_xavient/widgets/right.c
-            fi
-          done
+              print(f"Wrote {output_file} with {len(files)} converted images.")
+
+          generate_combined_file("left")
+          generate_combined_file("right")
+          PY
 
       - name: Update peripheral_status.c for left and right slideshows
         if: steps.check_images.outputs.images_exist == 'true'
