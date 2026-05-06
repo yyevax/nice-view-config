@@ -200,7 +200,7 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->art = art;
     widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
 
-    const lv_img_dsc_t **initial_imgs = widget->align_left ? left_anim_imgs : right_anim_imgs;
+    const lv_image_dsc_t **initial_imgs = widget->align_left ? left_anim_imgs : right_anim_imgs;
     const size_t initial_count = widget->align_left ? (sizeof(left_anim_imgs) / sizeof(left_anim_imgs[0])) : (sizeof(right_anim_imgs) / sizeof(right_anim_imgs[0]));
     if (initial_count > 0) {
         lv_image_set_src(art, initial_imgs[widget->slide_index % initial_count]);

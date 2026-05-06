@@ -110,7 +110,7 @@ jobs:
             fi
           done
 
-            - name: Update peripheral_status.c for left and right slideshows
+      - name: Update peripheral_status.c for left and right slideshows
         if: steps.check_images.outputs.images_exist == 'true'
         run: |
           python3 <<'EOF'
