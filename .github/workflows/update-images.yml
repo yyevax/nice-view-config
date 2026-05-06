@@ -110,7 +110,7 @@ jobs:
             fi
           done
 
-      - name: Update peripheral_status.c for left and right slideshows
+            - name: Update peripheral_status.c for left and right slideshows
         if: steps.check_images.outputs.images_exist == 'true'
         run: |
           python3 <<'EOF'
@@ -134,42 +134,54 @@ jobs:
 
           content = peripheral_file.read_text(encoding="utf-8")
 
-          decl_block = "\n".join(f"LV_IMAGE_DECLARE({stem});" for stem in left_images + right_images)
+          # Remove old auto-generated slideshow block if it already exists.
+          auto_block_pattern = re.compile(
+              r'\n?// AUTO-GENERATED SLIDESHOW IMAGES START\n.*?// AUTO-GENERATED SLIDESHOW IMAGES END\n?',
+              re.DOTALL
+          )
+          content = auto_block_pattern.sub("\n", content)
+
+          decl_block = "\n".join(
+              f"LV_IMAGE_DECLARE({stem});"
+              for stem in left_images + right_images
+          )
+
           left_anim_array = (
-              "const lv_image_dsc_t *left_anim_imgs[] = {\n" +
+              "static const lv_image_dsc_t *left_anim_imgs[] = {\n" +
               "".join(f"    &{stem},\n" for stem in left_images) +
               "};"
           )
+
           right_anim_array = (
-              "const lv_image_dsc_t *right_anim_imgs[] = {\n" +
+              "static const lv_image_dsc_t *right_anim_imgs[] = {\n" +
               "".join(f"    &{stem},\n" for stem in right_images) +
               "};"
           )
-          replacement_block = f"{decl_block}\n\n{left_anim_array}\n\n{right_anim_array}"
 
-          pattern = re.compile(
-              r'(?:LV_IMG_DECLARE\([^)]+\);\s*)+\nconst\s+lv_img_dsc_t\s*\*\s*left_anim_imgs\[\]\s*=\s*\{.*?\};\s*\n\nstatic\s+const\s+lv_img_dsc_t\s*\*right_anim_imgs\[\]\s*=\s*\{.*?\};',
-              re.DOTALL
+          replacement_block = (
+              "// AUTO-GENERATED SLIDESHOW IMAGES START\n"
+              f"{decl_block}\n\n"
+              f"{left_anim_array}\n\n"
+              f"{right_anim_array}\n"
+              "// AUTO-GENERATED SLIDESHOW IMAGES END\n"
           )
 
-          if pattern.search(content):
-              new_content = pattern.sub(replacement_block, content)
-              print("Replaced existing image declare / left_anim / right_anim blocks.")
-          else:
-              include_pattern = re.compile(r'(#include[^\n]+\n)+', re.DOTALL)
-              m = include_pattern.search(content)
-              if m:
-                  idx = m.end()
-                  new_content = content[:idx] + "\n" + replacement_block + "\n\n" + content[idx:]
-                  print("Inserted image declarations after includes.")
-              else:
-                  new_content = replacement_block + "\n\n" + content
-                  print("Prepended image declarations.")
+          # Insert AFTER peripheral_status.h because this is where LVGL types/macros are available.
+          include_line = '#include "peripheral_status.h"'
+          if include_line not in content:
+              print('Could not find #include "peripheral_status.h"; skipping.')
+              exit(1)
 
-          peripheral_file.write_text(new_content, encoding="utf-8")
+          content = content.replace(
+              include_line,
+              include_line + "\n\n" + replacement_block,
+              1
+          )
+
+          peripheral_file.write_text(content, encoding="utf-8")
           print(f"Updated peripheral_status.c with {len(left_images)} left and {len(right_images)} right images.")
           EOF
-
+          
       - name: Commit and push changes
         if: steps.check_images.outputs.images_exist == 'true'
         run: |

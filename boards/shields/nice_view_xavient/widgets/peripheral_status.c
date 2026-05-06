@@ -89,7 +89,7 @@ ZMK_SUBSCRIPTION(widget_slideshow_speed_decrease, zmk_slideshow_speed_decrease);
 
 static void peripheral_status_slideshow_cb(lv_timer_t *timer) {
     struct zmk_widget_status *widget = (struct zmk_widget_status *)lv_timer_get_user_data(timer);
-    const lv_img_dsc_t **current_imgs = widget->align_left ? left_anim_imgs : right_anim_imgs;
+    const lv_image_dsc_t **current_imgs = widget->align_left ? left_anim_imgs : right_anim_imgs;
     const size_t slide_count = widget->align_left ?
         (sizeof(left_anim_imgs) / sizeof(left_anim_imgs[0])) :
         (sizeof(right_anim_imgs) / sizeof(right_anim_imgs[0]));
