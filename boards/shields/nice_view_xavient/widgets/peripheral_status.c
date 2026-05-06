@@ -26,6 +26,10 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include "peripheral_status.h"
 
+// Custom events for slideshow control
+ZMK_EVENT_DECLARE(zmk_slideshow_speed_increase);
+ZMK_EVENT_DECLARE(zmk_slideshow_speed_decrease);
+
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
 LV_IMAGE_DECLARE(left);
 #define PERIPHERAL_IMAGE left
@@ -35,6 +39,49 @@ LV_IMAGE_DECLARE(right);
 #endif
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
+
+static void slideshow_speed_increase_cb(const zmk_event_t *eh) {
+    struct zmk_widget_status *widget;
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+        widget->slideshow_interval_ms = MIN(widget->slideshow_interval_ms + PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_STEP_MS,
+                                           PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MAX_MS);
+        lv_timer_set_period(widget->slideshow_timer, widget->slideshow_interval_ms);
+    }
+}
+
+static void slideshow_speed_decrease_cb(const zmk_event_t *eh) {
+    struct zmk_widget_status *widget;
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+        widget->slideshow_interval_ms = MAX(widget->slideshow_interval_ms - PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_STEP_MS,
+                                           PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MIN_MS);
+        lv_timer_set_period(widget->slideshow_timer, widget->slideshow_interval_ms);
+    }
+}
+
+ZMK_LISTENER(widget_slideshow_speed_increase, slideshow_speed_increase_cb);
+ZMK_LISTENER(widget_slideshow_speed_decrease, slideshow_speed_decrease_cb);
+
+ZMK_SUBSCRIPTION(widget_slideshow_speed_increase, zmk_slideshow_speed_increase);
+ZMK_SUBSCRIPTION(widget_slideshow_speed_decrease, zmk_slideshow_speed_decrease);
+
+static void peripheral_status_slideshow_cb(lv_timer_t *timer) {
+    struct zmk_widget_status *widget = (struct zmk_widget_status *)lv_timer_get_user_data(timer);
+    const lv_img_dsc_t **current_imgs = widget->align_left ? left_anim_imgs : right_anim_imgs;
+    const size_t slide_count = widget->align_left ?
+        (sizeof(left_anim_imgs) / sizeof(left_anim_imgs[0])) :
+        (sizeof(right_anim_imgs) / sizeof(right_anim_imgs[0]));
+
+    if (slide_count == 0) {
+        return;
+    }
+
+    widget->slide_index = (widget->slide_index + 1) % slide_count;
+    widget->align_left = !widget->align_left;
+    lv_image_set_src(widget->art, current_imgs[widget->slide_index]);
+    lv_obj_align(widget->art,
+                 widget->align_left ? LV_ALIGN_TOP_LEFT : LV_ALIGN_TOP_RIGHT,
+                 0, 0);
+}
 
 struct peripheral_status_state {
     bool connected;
@@ -123,10 +170,24 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
 
     lv_obj_t *art = lv_image_create(widget->obj);
+    const size_t slide_count = sizeof(left_anim_imgs) / sizeof(left_anim_imgs[0]) + sizeof(right_anim_imgs) / sizeof(right_anim_imgs[0]);
+    uint32_t rand = sys_rand32_get();
+    widget->slide_index = slide_count ? rand % slide_count : 0;
+    widget->align_left = rand & 0x1;
+    widget->art = art;
+    widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
 
-    lv_image_set_src(art, &PERIPHERAL_IMAGE);
-
-    lv_obj_align(art, LV_ALIGN_TOP_LEFT, 0, 0);
+    const lv_img_dsc_t **initial_imgs = widget->align_left ? left_anim_imgs : right_anim_imgs;
+    const size_t initial_count = widget->align_left ? (sizeof(left_anim_imgs) / sizeof(left_anim_imgs[0])) : (sizeof(right_anim_imgs) / sizeof(right_anim_imgs[0]));
+    if (initial_count > 0) {
+        lv_image_set_src(art, initial_imgs[widget->slide_index % initial_count]);
+    } else {
+        lv_image_set_src(art, &PERIPHERAL_IMAGE); // fallback
+    }
+    lv_obj_align(art, widget->align_left ? LV_ALIGN_TOP_LEFT : LV_ALIGN_TOP_RIGHT, 0, 0);
+    widget->slideshow_timer = lv_timer_create(peripheral_status_slideshow_cb,
+                                              widget->slideshow_interval_ms,
+                                              widget);
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();

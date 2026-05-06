@@ -33,20 +33,29 @@ jobs:
       - name: Check for left and right images
         id: check_images
         run: |
-          if [ -f "assets/left.png" ] && [ -f "assets/right.png" ]; then
+          if [ -d "assets/left" ] && [ -d "assets/right" ] && ([ "$(find assets/left -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) | wc -l)" -gt 0 ] || [ "$(find assets/right -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) | wc -l)" -gt 0 ]); then
             echo "images_exist=true" >> $GITHUB_OUTPUT
-            echo "Found assets/left.png and assets/right.png"
+            echo "Found images in assets/left or assets/right"
           else
             echo "images_exist=false" >> $GITHUB_OUTPUT
-            echo "Missing assets/left.png or assets/right.png"
+            echo "No images found in assets/left or assets/right"
           fi
 
       - name: Convert left and right images to C arrays
         if: steps.check_images.outputs.images_exist == 'true'
         run: |
-          mkdir -p converted
-          python3 scripts/niceview_lvgl_convert.py assets/left.png --outdir converted
-          python3 scripts/niceview_lvgl_convert.py assets/right.png --outdir converted
+          rm -rf converted
+          mkdir -p converted/left converted/right
+
+          # Convert all images in assets/left
+          if [ -d "assets/left" ]; then
+            find assets/left -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) -exec python3 scripts/niceview_lvgl_convert.py {} --outdir converted/left \;
+          fi
+
+          # Convert all images in assets/right
+          if [ -d "assets/right" ]; then
+            find assets/right -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) -exec python3 scripts/niceview_lvgl_convert.py {} --outdir converted/right \;
+          fi
 
       - name: Generate left.c and right.c files
         if: steps.check_images.outputs.images_exist == 'true'
@@ -68,7 +77,13 @@ jobs:
 
           EOF
 
-          sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_LARGE_CONST/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_LEFT/,/#endif/d' converted/left.c >> boards/shields/nice_view_xavient/widgets/left.c
+          # Process each converted left file
+          for file in converted/left/*.c; do
+            if [ -f "$file" ]; then
+              sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_LARGE_CONST/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_LEFT/,/#endif/d' "$file" >> boards/shields/nice_view_xavient/widgets/left.c
+              echo "" >> boards/shields/nice_view_xavient/widgets/left.c
+            fi
+          done
 
           cat > boards/shields/nice_view_xavient/widgets/right.c << 'EOF'
           #include <lvgl.h>
@@ -87,7 +102,73 @@ jobs:
 
           EOF
 
-          sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_LARGE_CONST/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_RIGHT/,/#endif/d' converted/right.c >> boards/shields/nice_view_xavient/widgets/right.c
+          # Process each converted right file
+          for file in converted/right/*.c; do
+            if [ -f "$file" ]; then
+              sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_LARGE_CONST/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_RIGHT/,/#endif/d' "$file" >> boards/shields/nice_view_xavient/widgets/right.c
+              echo "" >> boards/shields/nice_view_xavient/widgets/right.c
+            fi
+          done
+
+      - name: Update peripheral_status.c for left and right slideshows
+        if: steps.check_images.outputs.images_exist == 'true'
+        run: |
+          python3 <<'EOF'
+          import re
+          from pathlib import Path
+
+          converted_left_dir = Path("converted/left")
+          converted_right_dir = Path("converted/right")
+          peripheral_file = Path("boards/shields/nice_view_xavient/widgets/peripheral_status.c")
+
+          if not peripheral_file.exists():
+              print("peripheral_status.c not found; skipping.")
+              exit(0)
+
+          left_images = sorted([p.stem for p in converted_left_dir.glob("*.c")])
+          right_images = sorted([p.stem for p in converted_right_dir.glob("*.c")])
+
+          if not left_images and not right_images:
+              print("No converted images; skipping peripheral_status.c modifications.")
+              exit(0)
+
+          content = peripheral_file.read_text(encoding="utf-8")
+
+          decl_block = "\n".join(f"LV_IMG_DECLARE({stem});" for stem in left_images + right_images)
+          left_anim_array = (
+              "const lv_img_dsc_t *left_anim_imgs[] = {\n" +
+              "".join(f"    &{stem},\n" for stem in left_images) +
+              "};"
+          )
+          right_anim_array = (
+              "const lv_img_dsc_t *right_anim_imgs[] = {\n" +
+              "".join(f"    &{stem},\n" for stem in right_images) +
+              "};"
+          )
+          replacement_block = f"{decl_block}\n\n{left_anim_array}\n\n{right_anim_array}"
+
+          pattern = re.compile(
+              r'(?:LV_IMG_DECLARE\([^)]+\);\s*)+\nconst\s+lv_img_dsc_t\s*\*\s*left_anim_imgs\[\]\s*=\s*\{.*?\};\s*\n\nstatic\s+const\s+lv_img_dsc_t\s*\*right_anim_imgs\[\]\s*=\s*\{.*?\};',
+              re.DOTALL
+          )
+
+          if pattern.search(content):
+              new_content = pattern.sub(replacement_block, content)
+              print("Replaced existing image declare / left_anim / right_anim blocks.")
+          else:
+              include_pattern = re.compile(r'(#include[^\n]+\n)+', re.DOTALL)
+              m = include_pattern.search(content)
+              if m:
+                  idx = m.end()
+                  new_content = content[:idx] + "\n" + replacement_block + "\n\n" + content[idx:]
+                  print("Inserted image declarations after includes.")
+              else:
+                  new_content = replacement_block + "\n\n" + content
+                  print("Prepended image declarations.")
+
+          peripheral_file.write_text(new_content, encoding="utf-8")
+          print(f"Updated peripheral_status.c with {len(left_images)} left and {len(right_images)} right images.")
+          EOF
 
       - name: Commit and push changes
         if: steps.check_images.outputs.images_exist == 'true'
@@ -97,6 +178,14 @@ jobs:
 
           git add boards/shields/nice_view_xavient/widgets/left.c
           git add boards/shields/nice_view_xavient/widgets/right.c
+          git add boards/shields/nice_view_xavient/widgets/peripheral_status.c
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+              git commit -m "🤖 Auto-update left/right slideshow images and peripheral_status declarations."
+              git push
+          fi
 
           if git diff --staged --quiet; then
             echo "No changes to commit"
