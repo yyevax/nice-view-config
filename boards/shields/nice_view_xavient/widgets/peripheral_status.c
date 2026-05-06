@@ -61,17 +61,7 @@ static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 static void peripheral_status_slideshow_cb(lv_timer_t *timer) {
     struct zmk_widget_status *widget = (struct zmk_widget_status *)lv_timer_get_user_data(timer);
 
-    /*
-     * Toggle side first, then select the matching image array.
-     * This prevents left images from being aligned right, or right images from being aligned left.
-     */
-    widget->align_left = !widget->align_left;
-
-    const lv_image_dsc_t **current_imgs = widget->align_left ? left_anim_imgs : right_anim_imgs;
-
-    const size_t slide_count = widget->align_left ?
-        (sizeof(left_anim_imgs) / sizeof(left_anim_imgs[0])) :
-        (sizeof(right_anim_imgs) / sizeof(right_anim_imgs[0]));
+    const size_t slide_count = sizeof(anim_imgs) / sizeof(anim_imgs[0]);
 
     if (slide_count == 0) {
         return;
@@ -79,12 +69,8 @@ static void peripheral_status_slideshow_cb(lv_timer_t *timer) {
 
     widget->slide_index = (widget->slide_index + 1) % slide_count;
 
-    lv_image_set_src(widget->art, current_imgs[widget->slide_index]);
-
-    lv_obj_align(widget->art,
-                 widget->align_left ? LV_ALIGN_TOP_LEFT : LV_ALIGN_TOP_RIGHT,
-                 0,
-                 0);
+    lv_image_set_src(widget->art, anim_imgs[widget->slide_index]);
+    lv_obj_align(widget->art, PERIPHERAL_ALIGN, 0, 0);
 }
 
 struct peripheral_status_state {

@@ -147,39 +147,40 @@ jobs:
 
           content = peripheral_file.read_text(encoding="utf-8")
 
-          # Remove old auto-generated slideshow block if it already exists.
           auto_block_pattern = re.compile(
               r'\n?// AUTO-GENERATED SLIDESHOW IMAGES START\n.*?// AUTO-GENERATED SLIDESHOW IMAGES END\n?',
               re.DOTALL
           )
           content = auto_block_pattern.sub("\n", content)
 
-          decl_block = "\n".join(
-              f"LV_IMAGE_DECLARE({stem});"
-              for stem in left_images + right_images
-          )
+          def declare_images(images):
+              return "\n".join(f"LV_IMAGE_DECLARE({stem});" for stem in images)
 
-          left_anim_array = (
-              "static const lv_image_dsc_t *left_anim_imgs[] = {\n" +
-              "".join(f"    &{stem},\n" for stem in left_images) +
-              "};"
-          )
+          def image_array(images):
+              return (
+                  "static const lv_image_dsc_t *anim_imgs[] = {\n" +
+                  "".join(f"    &{stem},\n" for stem in images) +
+                  "};"
+              )
 
-          right_anim_array = (
-              "static const lv_image_dsc_t *right_anim_imgs[] = {\n" +
-              "".join(f"    &{stem},\n" for stem in right_images) +
-              "};"
+          left_block = (
+              "#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)\n"
+              f"{declare_images(left_images)}\n\n"
+              f"{image_array(left_images)}\n"
+              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n"
+              "#else\n"
+              f"{declare_images(right_images)}\n\n"
+              f"{image_array(right_images)}\n"
+              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT\n"
+              "#endif\n"
           )
 
           replacement_block = (
               "// AUTO-GENERATED SLIDESHOW IMAGES START\n"
-              f"{decl_block}\n\n"
-              f"{left_anim_array}\n\n"
-              f"{right_anim_array}\n"
+              f"{left_block}"
               "// AUTO-GENERATED SLIDESHOW IMAGES END\n"
           )
 
-          # Insert AFTER peripheral_status.h because this is where LVGL types/macros are available.
           include_line = '#include "peripheral_status.h"'
           if include_line not in content:
               print('Could not find #include "peripheral_status.h"; skipping.')
@@ -192,7 +193,7 @@ jobs:
           )
 
           peripheral_file.write_text(content, encoding="utf-8")
-          print(f"Updated peripheral_status.c with {len(left_images)} left and {len(right_images)} right images.")
+          print(f"Updated peripheral_status.c with side-specific slideshow images.")
           EOF
           
       - name: Commit and push changes
