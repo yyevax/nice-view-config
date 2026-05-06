@@ -47,12 +47,10 @@ jobs:
           rm -rf converted
           mkdir -p converted/left converted/right
 
-          # Convert all images in assets/left
           if [ -d "assets/left" ]; then
             find assets/left -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) -exec python3 scripts/niceview_lvgl_convert.py {} --outdir converted/left \;
           fi
 
-          # Convert all images in assets/right
           if [ -d "assets/right" ]; then
             find assets/right -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) -exec python3 scripts/niceview_lvgl_convert.py {} --outdir converted/right \;
           fi
@@ -79,14 +77,20 @@ jobs:
               for file in files:
                   text = file.read_text(encoding="utf-8")
 
-                  # Remove duplicate lvgl includes and existing generic macro guards.
-                  text = re.sub(r'^\s*#include\s+<lvgl\.h>\s*\n?', '', text, flags=re.MULTILINE)
+                  text = re.sub(
+                      r'^\s*#include\s+<lvgl\.h>\s*\n?',
+                      '',
+                      text,
+                      flags=re.MULTILINE,
+                  )
+
                   text = re.sub(
                       r'\s*#ifndef\s+LV_ATTRIBUTE_MEM_ALIGN\s*\n\s*#define\s+LV_ATTRIBUTE_MEM_ALIGN\s*\n\s*#endif\s*\n?',
                       '\n',
                       text,
                       flags=re.MULTILINE,
                   )
+
                   text = re.sub(
                       r'\s*#ifndef\s+LV_ATTRIBUTE_LARGE_CONST\s*\n\s*#define\s+LV_ATTRIBUTE_LARGE_CONST\s*\n\s*#endif\s*\n?',
                       '\n',
@@ -94,7 +98,6 @@ jobs:
                       flags=re.MULTILINE,
                   )
 
-                  # Collect every LV_ATTRIBUTE_IMG_* macro actually used.
                   macros.update(re.findall(r'\bLV_ATTRIBUTE_IMG_[A-Za-z0-9_]+\b', text))
 
                   body_parts.append(text.strip())
@@ -147,10 +150,9 @@ jobs:
 
           content = peripheral_file.read_text(encoding="utf-8")
 
-          # Replace auto-generated slideshow declaration block.
           auto_block_pattern = re.compile(
               r'\n?// AUTO-GENERATED SLIDESHOW IMAGES START\n.*?// AUTO-GENERATED SLIDESHOW IMAGES END\n?',
-              re.DOTALL
+              re.DOTALL,
           )
           content = auto_block_pattern.sub("\n", content)
 
@@ -158,11 +160,10 @@ jobs:
               return "\n".join(f"LV_IMAGE_DECLARE({stem});" for stem in images)
 
           def image_array(images):
-              return (
-                  "static const lv_image_dsc_t *anim_imgs[] = {\n" +
-                  "".join(f"    &{stem},\n" for stem in images) +
-                  "};"
-              )
+              lines = ["static const lv_image_dsc_t *anim_imgs[] = {"]
+              lines.extend(f"    &{stem}," for stem in images)
+              lines.append("};")
+              return "\n".join(lines)
 
           generated_block = (
               "// AUTO-GENERATED SLIDESHOW IMAGES START\n"
@@ -186,64 +187,63 @@ jobs:
           content = content.replace(
               include_line,
               include_line + "\n\n" + generated_block,
-              1
+              1,
           )
 
-          # Replace old init logic that used left_anim_imgs/right_anim_imgs/widget->align_left.
           old_init_pattern = re.compile(
-              r'''uint32_t rand = sys_rand32_get\(\);\s+
+              r"""uint32_t rand = sys_rand32_get\(\);\s*
 
-              \s*widget->align_left = rand & 0x1;
-              \s*widget->art = art;
-              \s*widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
+\s*widget->align_left = rand & 0x1;
+\s*widget->art = art;
+\s*widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
 
-              \s*const lv_image_dsc_t \*\*initial_imgs = widget->align_left \? left_anim_imgs : right_anim_imgs;
+\s*const lv_image_dsc_t \*\*initial_imgs = widget->align_left \? left_anim_imgs : right_anim_imgs;
 
-              \s*const size_t initial_count = widget->align_left \?
-              \s*\(sizeof\(left_anim_imgs\) / sizeof\(left_anim_imgs\[0\]\)\) :
-              \s*\(sizeof\(right_anim_imgs\) / sizeof\(right_anim_imgs\[0\]\)\);
+\s*const size_t initial_count = widget->align_left \?
+\s*\(sizeof\(left_anim_imgs\) / sizeof\(left_anim_imgs\[0\]\)\) :
+\s*\(sizeof\(right_anim_imgs\) / sizeof\(right_anim_imgs\[0\]\)\);
 
-              \s*widget->slide_index = initial_count \? rand % initial_count : 0;
+\s*widget->slide_index = initial_count \? rand % initial_count : 0;
 
-              \s*if \(initial_count > 0\) {
-              \s*lv_image_set_src\(art, initial_imgs\[widget->slide_index\]\);
-              \s*} else {
-              \s*lv_image_set_src\(art, &PERIPHERAL_IMAGE\);
-              \s*}
+\s*if \(initial_count > 0\) {
+\s*lv_image_set_src\(art, initial_imgs\[widget->slide_index\]\);
+\s*} else {
+\s*lv_image_set_src\(art, &PERIPHERAL_IMAGE\);
+\s*}
 
-              \s*lv_obj_align\(art,
-              \s*widget->align_left \? LV_ALIGN_TOP_LEFT : LV_ALIGN_TOP_RIGHT,
-              \s*0,
-              \s*0\);''',
-              re.DOTALL
+\s*lv_obj_align\(art,
+\s*widget->align_left \? LV_ALIGN_TOP_LEFT : LV_ALIGN_TOP_RIGHT,
+\s*0,
+\s*0\);""",
+              re.DOTALL,
           )
 
           new_init_block = """uint32_t rand = sys_rand32_get();
 
-              widget->art = art;
-              widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
+    widget->art = art;
+    widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
 
-              const size_t slide_count = sizeof(anim_imgs) / sizeof(anim_imgs[0]);
+    const size_t slide_count = sizeof(anim_imgs) / sizeof(anim_imgs[0]);
 
-              widget->slide_index = slide_count ? rand % slide_count : 0;
+    widget->slide_index = slide_count ? rand % slide_count : 0;
 
-              if (slide_count > 0) {
-                  lv_image_set_src(art, anim_imgs[widget->slide_index]);
-              } else {
-                  lv_image_set_src(art, &PERIPHERAL_IMAGE);
-              }
+    if (slide_count > 0) {
+        lv_image_set_src(art, anim_imgs[widget->slide_index]);
+    } else {
+        lv_image_set_src(art, &PERIPHERAL_IMAGE);
+    }
 
-              lv_obj_align(art, PERIPHERAL_ALIGN, 0, 0);"""
+    lv_obj_align(art, PERIPHERAL_ALIGN, 0, 0);"""
 
           content, replacements = old_init_pattern.subn(new_init_block, content)
 
           if replacements == 0:
-              print("Warning: old init block was not found. Make sure zmk_widget_status_init already uses anim_imgs and PERIPHERAL_ALIGN.")
+              print("Warning: old init block was not found. It may already be updated.")
 
           peripheral_file.write_text(content, encoding="utf-8")
           print(f"Updated peripheral_status.c with {len(left_images)} left images and {len(right_images)} right images.")
           EOF
-          
+
       - name: Commit and push changes
         if: steps.check_images.outputs.images_exist == 'true'
         run: |
