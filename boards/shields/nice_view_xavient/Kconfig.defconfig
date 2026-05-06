@@ -43,6 +43,11 @@ config NICE_VIEW_WIDGET_STATUS
 config NICE_VIEW_WIDGET_INVERTED
     bool "Invert custom status widget colors"
 
+config NICE_VIEW_WIDGET_SLIDESHOW_INTERVAL_MS
+    int "Custom nice!view slideshow interval in milliseconds"
+    default 2000
+    depends on NICE_VIEW_WIDGET_STATUS
+
 if !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
 
 config NICE_VIEW_WIDGET_STATUS

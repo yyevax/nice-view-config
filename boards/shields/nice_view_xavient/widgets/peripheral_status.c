@@ -48,10 +48,6 @@ static const lv_image_dsc_t *right_anim_imgs[] = {
 // AUTO-GENERATED SLIDESHOW IMAGES END
 
 
-// Custom events for slideshow control
-ZMK_EVENT_DECLARE(zmk_slideshow_speed_increase);
-ZMK_EVENT_DECLARE(zmk_slideshow_speed_decrease);
-
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
 LV_IMAGE_DECLARE(left);
 #define PERIPHERAL_IMAGE left
@@ -62,29 +58,6 @@ LV_IMAGE_DECLARE(right);
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
-static void slideshow_speed_increase_cb(const zmk_event_t *eh) {
-    struct zmk_widget_status *widget;
-    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        widget->slideshow_interval_ms = MIN(widget->slideshow_interval_ms + PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_STEP_MS,
-                                           PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MAX_MS);
-        lv_timer_set_period(widget->slideshow_timer, widget->slideshow_interval_ms);
-    }
-}
-
-static void slideshow_speed_decrease_cb(const zmk_event_t *eh) {
-    struct zmk_widget_status *widget;
-    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        widget->slideshow_interval_ms = MAX(widget->slideshow_interval_ms - PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_STEP_MS,
-                                           PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MIN_MS);
-        lv_timer_set_period(widget->slideshow_timer, widget->slideshow_interval_ms);
-    }
-}
-
-ZMK_LISTENER(widget_slideshow_speed_increase, slideshow_speed_increase_cb);
-ZMK_LISTENER(widget_slideshow_speed_decrease, slideshow_speed_decrease_cb);
-
-ZMK_SUBSCRIPTION(widget_slideshow_speed_increase, zmk_slideshow_speed_increase);
-ZMK_SUBSCRIPTION(widget_slideshow_speed_decrease, zmk_slideshow_speed_decrease);
 
 static void peripheral_status_slideshow_cb(lv_timer_t *timer) {
     struct zmk_widget_status *widget = (struct zmk_widget_status *)lv_timer_get_user_data(timer);
