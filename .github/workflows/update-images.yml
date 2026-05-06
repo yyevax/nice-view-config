@@ -123,7 +123,7 @@ jobs:
           generate_combined_file("right")
           PY
 
-      - name: Update peripheral_status.c for left and right slideshows
+      - name: Update peripheral_status.c for side-specific slideshow
         if: steps.check_images.outputs.images_exist == 'true'
         run: |
           python3 <<'EOF'
@@ -147,6 +147,7 @@ jobs:
 
           content = peripheral_file.read_text(encoding="utf-8")
 
+          # Replace auto-generated slideshow declaration block.
           auto_block_pattern = re.compile(
               r'\n?// AUTO-GENERATED SLIDESHOW IMAGES START\n.*?// AUTO-GENERATED SLIDESHOW IMAGES END\n?',
               re.DOTALL
@@ -163,21 +164,17 @@ jobs:
                   "};"
               )
 
-          left_block = (
-              "#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)\n"
-              f"{declare_images(left_images)}\n\n"
-              f"{image_array(left_images)}\n"
-              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n"
-              "#else\n"
-              f"{declare_images(right_images)}\n\n"
-              f"{image_array(right_images)}\n"
-              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT\n"
-              "#endif\n"
-          )
-
-          replacement_block = (
+          generated_block = (
               "// AUTO-GENERATED SLIDESHOW IMAGES START\n"
-              f"{left_block}"
+              "#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)\n\n"
+              f"{declare_images(left_images)}\n\n"
+              f"{image_array(left_images)}\n\n"
+              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
+              "#else\n\n"
+              f"{declare_images(right_images)}\n\n"
+              f"{image_array(right_images)}\n\n"
+              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT\n\n"
+              "#endif\n"
               "// AUTO-GENERATED SLIDESHOW IMAGES END\n"
           )
 
@@ -188,12 +185,63 @@ jobs:
 
           content = content.replace(
               include_line,
-              include_line + "\n\n" + replacement_block,
+              include_line + "\n\n" + generated_block,
               1
           )
 
+          # Replace old init logic that used left_anim_imgs/right_anim_imgs/widget->align_left.
+          old_init_pattern = re.compile(
+              r'''uint32_t rand = sys_rand32_get\(\);\s+
+
+              \s*widget->align_left = rand & 0x1;
+              \s*widget->art = art;
+              \s*widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
+
+              \s*const lv_image_dsc_t \*\*initial_imgs = widget->align_left \? left_anim_imgs : right_anim_imgs;
+
+              \s*const size_t initial_count = widget->align_left \?
+              \s*\(sizeof\(left_anim_imgs\) / sizeof\(left_anim_imgs\[0\]\)\) :
+              \s*\(sizeof\(right_anim_imgs\) / sizeof\(right_anim_imgs\[0\]\)\);
+
+              \s*widget->slide_index = initial_count \? rand % initial_count : 0;
+
+              \s*if \(initial_count > 0\) {
+              \s*lv_image_set_src\(art, initial_imgs\[widget->slide_index\]\);
+              \s*} else {
+              \s*lv_image_set_src\(art, &PERIPHERAL_IMAGE\);
+              \s*}
+
+              \s*lv_obj_align\(art,
+              \s*widget->align_left \? LV_ALIGN_TOP_LEFT : LV_ALIGN_TOP_RIGHT,
+              \s*0,
+              \s*0\);''',
+              re.DOTALL
+          )
+
+          new_init_block = """uint32_t rand = sys_rand32_get();
+
+              widget->art = art;
+              widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
+
+              const size_t slide_count = sizeof(anim_imgs) / sizeof(anim_imgs[0]);
+
+              widget->slide_index = slide_count ? rand % slide_count : 0;
+
+              if (slide_count > 0) {
+                  lv_image_set_src(art, anim_imgs[widget->slide_index]);
+              } else {
+                  lv_image_set_src(art, &PERIPHERAL_IMAGE);
+              }
+
+              lv_obj_align(art, PERIPHERAL_ALIGN, 0, 0);"""
+
+          content, replacements = old_init_pattern.subn(new_init_block, content)
+
+          if replacements == 0:
+              print("Warning: old init block was not found. Make sure zmk_widget_status_init already uses anim_imgs and PERIPHERAL_ALIGN.")
+
           peripheral_file.write_text(content, encoding="utf-8")
-          print(f"Updated peripheral_status.c with side-specific slideshow images.")
+          print(f"Updated peripheral_status.c with {len(left_images)} left images and {len(right_images)} right images.")
           EOF
           
       - name: Commit and push changes

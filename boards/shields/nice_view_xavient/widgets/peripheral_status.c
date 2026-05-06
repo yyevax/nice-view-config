@@ -23,16 +23,16 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include "peripheral_status.h"
 
 // AUTO-GENERATED SLIDESHOW IMAGES START
+#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
+
 LV_IMAGE_DECLARE(left_image1);
 LV_IMAGE_DECLARE(left_image2);
 LV_IMAGE_DECLARE(left_image3);
 LV_IMAGE_DECLARE(left_image4);
 LV_IMAGE_DECLARE(left_image5);
 LV_IMAGE_DECLARE(left_image6);
-LV_IMAGE_DECLARE(right_image1);
-LV_IMAGE_DECLARE(right_image2);
 
-static const lv_image_dsc_t *left_anim_imgs[] = {
+static const lv_image_dsc_t *anim_imgs[] = {
     &left_image1,
     &left_image2,
     &left_image3,
@@ -41,13 +41,22 @@ static const lv_image_dsc_t *left_anim_imgs[] = {
     &left_image6,
 };
 
-static const lv_image_dsc_t *right_anim_imgs[] = {
+#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
+
+#else
+
+LV_IMAGE_DECLARE(right_image1);
+LV_IMAGE_DECLARE(right_image2);
+
+static const lv_image_dsc_t *anim_imgs[] = {
     &right_image1,
     &right_image2,
 };
+
+#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT
+
+#endif
 // AUTO-GENERATED SLIDESHOW IMAGES END
-
-
 
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
 LV_IMAGE_DECLARE(left);
@@ -87,13 +96,10 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
     lv_draw_rect_dsc_t rect_black_dsc;
     init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
 
-    // Fill background
     canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
 
-    // Draw battery percentage
     pct_battery(canvas, state);
 
-    // Draw connection/output status
     canvas_draw_text(canvas,
                      0,
                      0,
@@ -101,7 +107,6 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
                      &label_dsc,
                      state->connected ? LV_SYMBOL_WIFI : LV_SYMBOL_CLOSE);
 
-    // Rotate canvas
     rotate_canvas(canvas);
 }
 
@@ -184,28 +189,20 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
 
     uint32_t rand = sys_rand32_get();
 
-    widget->align_left = rand & 0x1;
     widget->art = art;
     widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
 
-    const lv_image_dsc_t **initial_imgs = widget->align_left ? left_anim_imgs : right_anim_imgs;
+    const size_t slide_count = sizeof(anim_imgs) / sizeof(anim_imgs[0]);
 
-    const size_t initial_count = widget->align_left ?
-        (sizeof(left_anim_imgs) / sizeof(left_anim_imgs[0])) :
-        (sizeof(right_anim_imgs) / sizeof(right_anim_imgs[0]));
+    widget->slide_index = slide_count ? rand % slide_count : 0;
 
-    widget->slide_index = initial_count ? rand % initial_count : 0;
-
-    if (initial_count > 0) {
-        lv_image_set_src(art, initial_imgs[widget->slide_index]);
+    if (slide_count > 0) {
+        lv_image_set_src(art, anim_imgs[widget->slide_index]);
     } else {
         lv_image_set_src(art, &PERIPHERAL_IMAGE);
     }
 
-    lv_obj_align(art,
-                 widget->align_left ? LV_ALIGN_TOP_LEFT : LV_ALIGN_TOP_RIGHT,
-                 0,
-                 0);
+    lv_obj_align(art, PERIPHERAL_ALIGN, 0, 0);
 
     widget->slideshow_timer = lv_timer_create(peripheral_status_slideshow_cb,
                                               widget->slideshow_interval_ms,
