@@ -49,6 +49,32 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include "peripheral_status.h"
 
+// AUTO-GENERATED SLIDESHOW IMAGES START
+LV_IMAGE_DECLARE(left_image1);
+LV_IMAGE_DECLARE(left_image2);
+LV_IMAGE_DECLARE(left_image3);
+LV_IMAGE_DECLARE(left_image4);
+LV_IMAGE_DECLARE(left_image5);
+LV_IMAGE_DECLARE(left_image6);
+LV_IMAGE_DECLARE(right_image1);
+LV_IMAGE_DECLARE(right_image2);
+
+static const lv_image_dsc_t *left_anim_imgs[] = {
+    &left_image1,
+    &left_image2,
+    &left_image3,
+    &left_image4,
+    &left_image5,
+    &left_image6,
+};
+
+static const lv_image_dsc_t *right_anim_imgs[] = {
+    &right_image1,
+    &right_image2,
+};
+// AUTO-GENERATED SLIDESHOW IMAGES END
+
+
 // Custom events for slideshow control
 ZMK_EVENT_DECLARE(zmk_slideshow_speed_increase);
 ZMK_EVENT_DECLARE(zmk_slideshow_speed_decrease);
