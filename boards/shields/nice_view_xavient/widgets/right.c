@@ -1,16 +1,21 @@
 #include <lvgl.h>
 
-#ifndef LV_ATTRIBUTE_MEM_ALIGN
-#define LV_ATTRIBUTE_MEM_ALIGN
+#ifndef LV_ATTRIBUTE_IMG_RIGHT_IMAGE1
+#define LV_ATTRIBUTE_IMG_RIGHT_IMAGE1
+#endif
+
+#ifndef LV_ATTRIBUTE_IMG_RIGHT_IMAGE2
+#define LV_ATTRIBUTE_IMG_RIGHT_IMAGE2
 #endif
 
 #ifndef LV_ATTRIBUTE_LARGE_CONST
 #define LV_ATTRIBUTE_LARGE_CONST
 #endif
 
-#ifndef LV_ATTRIBUTE_IMG_RIGHT
-#define LV_ATTRIBUTE_IMG_RIGHT
+#ifndef LV_ATTRIBUTE_MEM_ALIGN
+#define LV_ATTRIBUTE_MEM_ALIGN
 #endif
+
 
 #ifndef LV_ATTRIBUTE_IMG_RIGHT_IMAGE1
 #define LV_ATTRIBUTE_IMG_RIGHT_IMAGE1
@@ -265,4 +270,3 @@ const lv_img_dsc_t right_image2 = {
     .data_size = sizeof(right_image2_map),
     .data = right_image2_map,
 };
-
