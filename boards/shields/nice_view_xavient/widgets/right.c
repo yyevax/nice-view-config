@@ -12,12 +12,9 @@
 #define LV_ATTRIBUTE_IMG_RIGHT
 #endif
 
-#ifndef LV_ATTRIBUTE_IMG_IMAGE1
-#define LV_ATTRIBUTE_IMG_IMAGE1
-#endif
 
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_IMAGE1 uint8_t
-    image1_map[] = {
+const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_RIGHT_IMAGE1 uint8_t
+    right_image1_map[] = {
     #if CONFIG_NICE_VIEW_WIDGET_INVERTED
     0xff, 0xff, 0xff, 0xff, /*Color of index 0*/
     0x00, 0x00, 0x00, 0xff, /*Color of index 1*/
@@ -130,21 +127,18 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_IMAGE1 ui
     0xA9, 0x12, 0xAA, 0xAA, 0xA9, 0x52, 0x6A, 0x4A, 0x80, 0x01, 0x29, 0x40
 };
 
-const lv_img_dsc_t image1 = {
+const lv_img_dsc_t right_image1 = {
     .header.cf = LV_COLOR_FORMAT_I1,
 
     .header.w = 140,
     .header.h = 68,
-    .data_size = sizeof(image1_map),
-    .data = image1_map,
+    .data_size = sizeof(right_image1_map),
+    .data = right_image1_map,
 };
 
-#ifndef LV_ATTRIBUTE_IMG_IMAGE2
-#define LV_ATTRIBUTE_IMG_IMAGE2
-#endif
 
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_IMAGE2 uint8_t
-    image2_map[] = {
+const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_RIGHT_IMAGE2 uint8_t
+    right_image2_map[] = {
     #if CONFIG_NICE_VIEW_WIDGET_INVERTED
     0xff, 0xff, 0xff, 0xff, /*Color of index 0*/
     0x00, 0x00, 0x00, 0xff, /*Color of index 1*/
@@ -257,12 +251,12 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_IMAGE2 ui
     0x2A, 0x7F, 0xBF, 0xBF, 0xEF, 0xFE, 0xFF, 0xDF, 0xFF, 0xFF, 0xBF, 0xF0
 };
 
-const lv_img_dsc_t image2 = {
+const lv_img_dsc_t right_image2 = {
     .header.cf = LV_COLOR_FORMAT_I1,
 
     .header.w = 140,
     .header.h = 68,
-    .data_size = sizeof(image2_map),
-    .data = image2_map,
+    .data_size = sizeof(right_image2_map),
+    .data = right_image2_map,
 };
 
