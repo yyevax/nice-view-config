@@ -80,7 +80,7 @@ jobs:
           # Process each converted left file
           for file in converted/left/*.c; do
             if [ -f "$file" ]; then
-              sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_LARGE_CONST/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_/,/#endif/d' "$file" >> boards/shields/nice_view_xavient/widgets/left.c
+              sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_LARGE_CONST/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_LEFT/,/#endif/d' "$file" >> boards/shields/nice_view_xavient/widgets/left.c
               echo "" >> boards/shields/nice_view_xavient/widgets/left.c
             fi
           done
@@ -105,7 +105,7 @@ jobs:
           # Process each converted right file
           for file in converted/right/*.c; do
             if [ -f "$file" ]; then
-              sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_LARGE_CONST/,/#endif/d; /#ifndef LV_ATTRIBUTE_IMG_/,/#endif/d' "$file" >> boards/shields/nice_view_xavient/widgets/right.c
+              sed '/#include <lvgl.h>/d; /#ifndef LV_ATTRIBUTE_MEM_ALIGN/,/#endif/d; /#ifndef LV_ATTRIBUTE_LARGE_CONST/,/#endif/d' "$file" >> boards/shields/nice_view_xavient/widgets/right.c
               echo "" >> boards/shields/nice_view_xavient/widgets/right.c
             fi
           done
