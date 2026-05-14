@@ -7,8 +7,6 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/random/random.h>
-
-
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
@@ -27,66 +25,44 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 // AUTO-GENERATED SLIDESHOW IMAGES START
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
 
-LV_IMAGE_DECLARE(imgFiveLeft);
-LV_IMAGE_DECLARE(imgFourLeft);
-LV_IMAGE_DECLARE(imgOneLeft);
-LV_IMAGE_DECLARE(imgSevenLeft);
-LV_IMAGE_DECLARE(imgSixLeft);
-LV_IMAGE_DECLARE(imgThreeLeft);
-LV_IMAGE_DECLARE(imgTwoLeft);
+LV_IMAGE_DECLARE(left_image1);
+LV_IMAGE_DECLARE(left_image2);
+LV_IMAGE_DECLARE(left_image3);
+LV_IMAGE_DECLARE(left_image4);
+LV_IMAGE_DECLARE(left_image5);
+LV_IMAGE_DECLARE(left_image6);
 
 static const lv_image_dsc_t *anim_imgs[] = {
-    &imgFiveLeft,
-    &imgFourLeft,
-    &imgOneLeft,
-    &imgSevenLeft,
-    &imgSixLeft,
-    &imgThreeLeft,
-    &imgTwoLeft,
+    &left_image1,
+    &left_image2,
+    &left_image3,
+    &left_image4,
+    &left_image5,
+    &left_image6,
 };
 
 #define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
 
 #elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
 
-LV_IMAGE_DECLARE(imgEightRight);
-LV_IMAGE_DECLARE(imgFourRight);
-LV_IMAGE_DECLARE(imgOneRight);
-LV_IMAGE_DECLARE(imgSevenRight);
-LV_IMAGE_DECLARE(imgSixRight);
-LV_IMAGE_DECLARE(imgThreeRight);
-LV_IMAGE_DECLARE(imgTwoRight);
+LV_IMAGE_DECLARE(right_image1);
+LV_IMAGE_DECLARE(right_image2);
 
 static const lv_image_dsc_t *anim_imgs[] = {
-    &imgEightRight,
-    &imgFourRight,
-    &imgOneRight,
-    &imgSevenRight,
-    &imgSixRight,
-    &imgThreeRight,
-    &imgTwoRight,
+    &right_image1,
+    &right_image2,
 };
 
 #define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT
 
 #else
 
-LV_IMAGE_DECLARE(imgEightRight);
-LV_IMAGE_DECLARE(imgFourRight);
-LV_IMAGE_DECLARE(imgOneRight);
-LV_IMAGE_DECLARE(imgSevenRight);
-LV_IMAGE_DECLARE(imgSixRight);
-LV_IMAGE_DECLARE(imgThreeRight);
-LV_IMAGE_DECLARE(imgTwoRight);
+LV_IMAGE_DECLARE(right_image1);
+LV_IMAGE_DECLARE(right_image2);
 
 static const lv_image_dsc_t *anim_imgs[] = {
-    &imgEightRight,
-    &imgFourRight,
-    &imgOneRight,
-    &imgSevenRight,
-    &imgSixRight,
-    &imgThreeRight,
-    &imgTwoRight,
+    &right_image1,
+    &right_image2,
 };
 
 #define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT
@@ -98,25 +74,30 @@ static const lv_image_dsc_t *anim_imgs[] = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-#if CONFIG_ZMK_SPLIT_ROLE_LEFT
+#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
 LV_IMAGE_DECLARE(left);
+#define PERIPHERAL_IMAGE left
 #else
 LV_IMAGE_DECLARE(right);
+#define PERIPHERAL_IMAGE right
 #endif
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
+
+static void peripheral_status_slideshow_cb(lv_timer_t *timer) {
+    struct zmk_widget_status *widget = (struct zmk_widget_status *)lv_timer_get_user_data(timer);
+
+    const size_t slide_count = sizeof(anim_imgs) / sizeof(anim_imgs[0]);
+
+    if (slide_count == 0) {
+        return;
+    }
+
+    widget->slide_index = (widget->slide_index + 1) % slide_count;
+
+    lv_image_set_src(widget->art, anim_imgs[widget->slide_index]);
+    lv_obj_align(widget->art, PERIPHERAL_ALIGN, 0, 0);
+}
 
 struct peripheral_status_state {
     bool connected;
@@ -127,20 +108,21 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
 
     lv_draw_label_dsc_t label_dsc;
     init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_16, LV_TEXT_ALIGN_RIGHT);
+
     lv_draw_rect_dsc_t rect_black_dsc;
     init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
 
-    // Fill background
     canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
 
-    // Draw battery
-    draw_battery(canvas, state);
+    pct_battery(canvas, state);
 
-    // Draw output status
-    canvas_draw_text(canvas, 0, 0, CANVAS_SIZE, &label_dsc,
+    canvas_draw_text(canvas,
+                     0,
+                     0,
+                     CANVAS_SIZE,
+                     &label_dsc,
                      state->connected ? LV_SYMBOL_WIFI : LV_SYMBOL_CLOSE);
 
-    // Rotate canvas
     rotate_canvas(canvas);
 }
 
@@ -148,7 +130,7 @@ static void set_battery_status(struct zmk_widget_status *widget,
                                struct battery_status_state state) {
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
     widget->state.charging = state.usb_present;
-#endif /* IS_ENABLED(CONFIG_USB_DEVICE_STACK) */
+#endif
 
     widget->state.battery = state.level;
 
@@ -157,7 +139,10 @@ static void set_battery_status(struct zmk_widget_status *widget,
 
 static void battery_status_update_cb(struct battery_status_state state) {
     struct zmk_widget_status *widget;
-    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) { set_battery_status(widget, state); }
+
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+        set_battery_status(widget, state);
+    }
 }
 
 static struct battery_status_state battery_status_get_state(const zmk_event_t *eh) {
@@ -165,20 +150,25 @@ static struct battery_status_state battery_status_get_state(const zmk_event_t *e
         .level = zmk_battery_state_of_charge(),
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
         .usb_present = zmk_usb_is_powered(),
-#endif /* IS_ENABLED(CONFIG_USB_DEVICE_STACK) */
+#endif
     };
 }
 
-ZMK_DISPLAY_WIDGET_LISTENER(widget_battery_status, struct battery_status_state,
-                            battery_status_update_cb, battery_status_get_state)
+ZMK_DISPLAY_WIDGET_LISTENER(widget_battery_status,
+                            struct battery_status_state,
+                            battery_status_update_cb,
+                            battery_status_get_state)
 
 ZMK_SUBSCRIPTION(widget_battery_status, zmk_battery_state_changed);
+
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
 ZMK_SUBSCRIPTION(widget_battery_status, zmk_usb_conn_state_changed);
-#endif /* IS_ENABLED(CONFIG_USB_DEVICE_STACK) */
+#endif
 
 static struct peripheral_status_state get_state(const zmk_event_t *_eh) {
-    return (struct peripheral_status_state){.connected = zmk_split_bt_peripheral_is_connected()};
+    return (struct peripheral_status_state){
+        .connected = zmk_split_bt_peripheral_is_connected(),
+    };
 }
 
 static void set_connection_status(struct zmk_widget_status *widget,
@@ -190,33 +180,58 @@ static void set_connection_status(struct zmk_widget_status *widget,
 
 static void output_status_update_cb(struct peripheral_status_state state) {
     struct zmk_widget_status *widget;
-    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) { set_connection_status(widget, state); }
+
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+        set_connection_status(widget, state);
+    }
 }
 
-ZMK_DISPLAY_WIDGET_LISTENER(widget_peripheral_status, struct peripheral_status_state,
-                            output_status_update_cb, get_state)
+ZMK_DISPLAY_WIDGET_LISTENER(widget_peripheral_status,
+                            struct peripheral_status_state,
+                            output_status_update_cb,
+                            get_state)
+
 ZMK_SUBSCRIPTION(widget_peripheral_status, zmk_split_peripheral_status_changed);
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
     lv_obj_set_size(widget->obj, 160, 68);
+
     lv_obj_t *top = lv_canvas_create(widget->obj);
     lv_obj_align(top, LV_ALIGN_TOP_RIGHT, 0, 0);
     lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
 
-    lv_obj_t *art = lv_img_create(widget->obj);
-#if CONFIG_ZMK_SPLIT_ROLE_LEFT
-    lv_image_set_src(art, &left);
-#else
-    lv_image_set_src(art, &right);
-#endif
-    lv_obj_align(art, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_t *art = lv_image_create(widget->obj);
+
+    uint32_t rand = sys_rand32_get();
+
+    widget->art = art;
+    widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
+
+    const size_t slide_count = sizeof(anim_imgs) / sizeof(anim_imgs[0]);
+
+    widget->slide_index = slide_count ? rand % slide_count : 0;
+
+    if (slide_count > 0) {
+        lv_image_set_src(art, anim_imgs[widget->slide_index]);
+    } else {
+        lv_image_set_src(art, &PERIPHERAL_IMAGE);
+    }
+
+    lv_obj_align(art, PERIPHERAL_ALIGN, 0, 0);
+
+    widget->slideshow_timer = lv_timer_create(peripheral_status_slideshow_cb,
+                                              widget->slideshow_interval_ms,
+                                              widget);
 
     sys_slist_append(&widgets, &widget->node);
+
     widget_battery_status_init();
     widget_peripheral_status_init();
 
     return 0;
 }
 
-lv_obj_t *zmk_widget_status_obj(struct zmk_widget_status *widget) { return widget->obj; }
+lv_obj_t *zmk_widget_status_obj(struct zmk_widget_status *widget) {
+    return widget->obj;
+}
