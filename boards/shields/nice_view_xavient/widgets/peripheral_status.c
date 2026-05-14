@@ -114,6 +114,8 @@ static const lv_image_dsc_t *anim_imgs[] = {
 
 
 
+
+
 #if CONFIG_ZMK_SPLIT_ROLE_LEFT
 LV_IMAGE_DECLARE(left);
 #else
