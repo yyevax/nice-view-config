@@ -32,10 +32,90 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include "peripheral_status.h"
 
-#if CONFIG_ZMK_SPLIT_ROLE_LEFT
-LV_IMG_DECLARE(left);
+// AUTO-GENERATED SLIDESHOW IMAGES START
+#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
+
+LV_IMAGE_DECLARE(imgFiveLeft);
+LV_IMAGE_DECLARE(imgFourLeft);
+LV_IMAGE_DECLARE(imgOneLeft);
+LV_IMAGE_DECLARE(imgSevenLeft);
+LV_IMAGE_DECLARE(imgSixLeft);
+LV_IMAGE_DECLARE(imgThreeLeft);
+LV_IMAGE_DECLARE(imgTwoLeft);
+
+static const lv_image_dsc_t *anim_imgs[] = {
+    &imgFiveLeft,
+    &imgFourLeft,
+    &imgOneLeft,
+    &imgSevenLeft,
+    &imgSixLeft,
+    &imgThreeLeft,
+    &imgTwoLeft,
+};
+
+#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
+
+#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
+
+LV_IMAGE_DECLARE(imgEightRight);
+LV_IMAGE_DECLARE(imgFourRight);
+LV_IMAGE_DECLARE(imgOneRight);
+LV_IMAGE_DECLARE(imgSevenRight);
+LV_IMAGE_DECLARE(imgSixRight);
+LV_IMAGE_DECLARE(imgThreeRight);
+LV_IMAGE_DECLARE(imgTwoRight);
+
+static const lv_image_dsc_t *anim_imgs[] = {
+    &imgEightRight,
+    &imgFourRight,
+    &imgOneRight,
+    &imgSevenRight,
+    &imgSixRight,
+    &imgThreeRight,
+    &imgTwoRight,
+};
+
+#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT
+
 #else
-LV_IMG_DECLARE(right);
+
+LV_IMAGE_DECLARE(imgEightRight);
+LV_IMAGE_DECLARE(imgFourRight);
+LV_IMAGE_DECLARE(imgOneRight);
+LV_IMAGE_DECLARE(imgSevenRight);
+LV_IMAGE_DECLARE(imgSixRight);
+LV_IMAGE_DECLARE(imgThreeRight);
+LV_IMAGE_DECLARE(imgTwoRight);
+
+static const lv_image_dsc_t *anim_imgs[] = {
+    &imgEightRight,
+    &imgFourRight,
+    &imgOneRight,
+    &imgSevenRight,
+    &imgSixRight,
+    &imgThreeRight,
+    &imgTwoRight,
+};
+
+#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT
+
+#endif
+// AUTO-GENERATED SLIDESHOW IMAGES END
+
+
+
+
+
+
+
+
+
+#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
+LV_IMAGE_DECLARE(left);
+#define PERIPHERAL_IMAGE left
+#else
+LV_IMAGE_DECLARE(right);
+#define PERIPHERAL_IMAGE right
 #endif
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
