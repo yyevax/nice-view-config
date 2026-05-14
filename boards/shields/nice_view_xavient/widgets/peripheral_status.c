@@ -97,14 +97,16 @@ static void peripheral_status_slideshow_cb(lv_timer_t *timer) {
 
     lv_image_set_src(widget->art, anim_imgs[widget->slide_index]);
     lv_obj_align(widget->art, PERIPHERAL_ALIGN, 0, 0);
+    lv_obj_move_foreground(widget->top);
 }
 
 struct peripheral_status_state {
     bool connected;
 };
 
-static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
-    lv_obj_t *canvas = lv_obj_get_child(widget, 0);
+static void draw_top(struct zmk_widget_status *widget) {
+    lv_obj_t *canvas = widget->top;
+    const struct status_state *state = &widget->state;
 
     lv_draw_label_dsc_t label_dsc;
     init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_16, LV_TEXT_ALIGN_RIGHT);
@@ -134,7 +136,7 @@ static void set_battery_status(struct zmk_widget_status *widget,
 
     widget->state.battery = state.level;
 
-    draw_top(widget->obj, widget->cbuf, &widget->state);
+    draw_top(widget);
 }
 
 static void battery_status_update_cb(struct battery_status_state state) {
@@ -175,7 +177,7 @@ static void set_connection_status(struct zmk_widget_status *widget,
                                   struct peripheral_status_state state) {
     widget->state.connected = state.connected;
 
-    draw_top(widget->obj, widget->cbuf, &widget->state);
+    draw_top(widget);
 }
 
 static void output_status_update_cb(struct peripheral_status_state state) {
@@ -198,6 +200,8 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_obj_set_size(widget->obj, 160, 68);
 
     lv_obj_t *top = lv_canvas_create(widget->obj);
+    widget->top = top;
+    
     lv_obj_align(top, LV_ALIGN_TOP_RIGHT, 0, 0);
     lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
 
@@ -219,6 +223,7 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     }
 
     lv_obj_align(art, PERIPHERAL_ALIGN, 0, 0);
+    lv_obj_move_foreground(widget->top);
 
     widget->slideshow_timer = lv_timer_create(peripheral_status_slideshow_cb,
                                               widget->slideshow_interval_ms,
