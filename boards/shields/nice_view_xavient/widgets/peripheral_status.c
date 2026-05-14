@@ -112,12 +112,10 @@ static const lv_image_dsc_t *anim_imgs[] = {
 
 
 
-#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
-LV_IMAGE_DECLARE(left);
-#define PERIPHERAL_IMAGE left
+#if CONFIG_ZMK_SPLIT_ROLE_LEFT
+LV_IMG_DECLARE(left);
 #else
-LV_IMAGE_DECLARE(right);
-#define PERIPHERAL_IMAGE right
+LV_IMG_DECLARE(right);
 #endif
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
