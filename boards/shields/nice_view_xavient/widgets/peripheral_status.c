@@ -65,7 +65,7 @@ static const lv_image_dsc_t *anim_imgs[] = {
     &imgTwoRight,
 };
 
-#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT
+#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
 
 #else
 
@@ -87,7 +87,7 @@ static const lv_image_dsc_t *anim_imgs[] = {
     &imgTwoRight,
 };
 
-#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT
+#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
 
 #endif
 // AUTO-GENERATED SLIDESHOW IMAGES END
@@ -121,7 +121,6 @@ static void peripheral_status_slideshow_cb(lv_timer_t *timer) {
 
     lv_image_set_src(widget->art, anim_imgs[widget->slide_index]);
     lv_obj_align(widget->art, PERIPHERAL_ALIGN, 0, 0);
-    lv_obj_move_foreground(widget->top);
 }
 
 struct peripheral_status_state {
@@ -247,7 +246,6 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     }
 
     lv_obj_align(art, PERIPHERAL_ALIGN, 0, 0);
-    lv_obj_move_foreground(widget->top);
 
     widget->slideshow_timer = lv_timer_create(peripheral_status_slideshow_cb,
                                               widget->slideshow_interval_ms,
