@@ -115,9 +115,9 @@ static const lv_image_dsc_t *anim_imgs[] = {
 
 
 #if CONFIG_ZMK_SPLIT_ROLE_LEFT
-LV_IMG_DECLARE(left);
+LV_IMAGE_DECLARE(left);
 #else
-LV_IMG_DECLARE(right);
+LV_IMAGE_DECLARE(right);
 #endif
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
