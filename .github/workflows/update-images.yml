@@ -174,11 +174,11 @@ jobs:
               "#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)\n\n"
               f"{declare_images(right_images)}\n\n"
               f"{image_array(right_images)}\n\n"
-              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT\n\n"
+              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
               "#else\n\n"
               f"{declare_images(right_images)}\n\n"
               f"{image_array(right_images)}\n\n"
-              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT\n\n"
+              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
               "#endif\n"
               "// AUTO-GENERATED SLIDESHOW IMAGES END\n"
           )
