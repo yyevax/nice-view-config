@@ -8,14 +8,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/random/random.h>
 
-LV_IMAGE_DECLARE(left);
-LV_IMAGE_DECLARE(right);
-
-const lv_img_dsc_t *anim_imgs[] = {
-    &left,
-    &right,
-};
-
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
