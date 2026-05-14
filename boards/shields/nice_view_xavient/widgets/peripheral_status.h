@@ -17,6 +17,7 @@
 struct zmk_widget_status {
     sys_snode_t node;
     lv_obj_t *obj;
+    lv_obj_t *top;
     lv_obj_t *art;
     lv_timer_t *slideshow_timer;
     lv_color_t cbuf[CANVAS_SIZE * CANVAS_SIZE];
