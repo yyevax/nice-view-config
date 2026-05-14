@@ -110,6 +110,8 @@ static const lv_image_dsc_t *anim_imgs[] = {
 
 
 
+
+
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
 LV_IMAGE_DECLARE(left);
 #define PERIPHERAL_IMAGE left
