@@ -65,7 +65,7 @@ static const lv_image_dsc_t *anim_imgs[] = {
     &imgTwoRight,
 };
 
-#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
+#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT
 
 #else
 
@@ -87,10 +87,12 @@ static const lv_image_dsc_t *anim_imgs[] = {
     &imgTwoRight,
 };
 
-#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
+#define PERIPHERAL_ALIGN LV_ALIGN_TOP_RIGHT
 
 #endif
 // AUTO-GENERATED SLIDESHOW IMAGES END
+
+
 
 
 
