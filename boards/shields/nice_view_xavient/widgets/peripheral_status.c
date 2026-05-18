@@ -30,6 +30,7 @@ LV_IMAGE_DECLARE(imageleftB);
 LV_IMAGE_DECLARE(imageleftC);
 LV_IMAGE_DECLARE(imageleftD);
 LV_IMAGE_DECLARE(imageleftE);
+LV_IMAGE_DECLARE(imageleftF);
 LV_IMAGE_DECLARE(imageleftG);
 LV_IMAGE_DECLARE(imageleftH);
 LV_IMAGE_DECLARE(imageleftI);
@@ -49,6 +50,7 @@ static const lv_image_dsc_t *anim_imgs[] = {
     &imageleftC,
     &imageleftD,
     &imageleftE,
+    &imageleftF,
     &imageleftG,
     &imageleftH,
     &imageleftI,
@@ -155,6 +157,8 @@ static const lv_image_dsc_t *anim_imgs[] = {
 
 #endif
 // AUTO-GENERATED SLIDESHOW IMAGES END
+
+
 
 
 
