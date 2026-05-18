@@ -34,13 +34,7 @@ LV_IMAGE_DECLARE(imgThreeLeft);
 LV_IMAGE_DECLARE(imgTwoLeft);
 
 static const lv_image_dsc_t *anim_imgs[] = {
-    &imgFiveLeft,
-    &imgFourLeft,
-    &imgOneLeft,
-    &imgSevenLeft,
-    &imgSixLeft,
-    &imgThreeLeft,
-    &imgTwoLeft,
+    &imgFiveLeft, &imgFourLeft, &imgOneLeft, &imgSevenLeft, &imgSixLeft, &imgThreeLeft, &imgTwoLeft,
 };
 
 #define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
@@ -56,13 +50,8 @@ LV_IMAGE_DECLARE(imgThreeRight);
 LV_IMAGE_DECLARE(imgTwoRight);
 
 static const lv_image_dsc_t *anim_imgs[] = {
-    &imgEightRight,
-    &imgFourRight,
-    &imgOneRight,
-    &imgSevenRight,
-    &imgSixRight,
-    &imgThreeRight,
-    &imgTwoRight,
+    &imgEightRight, &imgFourRight,  &imgOneRight, &imgSevenRight,
+    &imgSixRight,   &imgThreeRight, &imgTwoRight,
 };
 
 #define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
@@ -78,27 +67,14 @@ LV_IMAGE_DECLARE(imgThreeRight);
 LV_IMAGE_DECLARE(imgTwoRight);
 
 static const lv_image_dsc_t *anim_imgs[] = {
-    &imgEightRight,
-    &imgFourRight,
-    &imgOneRight,
-    &imgSevenRight,
-    &imgSixRight,
-    &imgThreeRight,
-    &imgTwoRight,
+    &imgEightRight, &imgFourRight,  &imgOneRight, &imgSevenRight,
+    &imgSixRight,   &imgThreeRight, &imgTwoRight,
 };
 
 #define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
 
 #endif
 // AUTO-GENERATED SLIDESHOW IMAGES END
-
-
-
-
-
-
-
-
 
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
 LV_IMAGE_DECLARE(left);
@@ -142,11 +118,7 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
 
     pct_battery(canvas, state);
 
-    canvas_draw_text(canvas,
-                     0,
-                     0,
-                     CANVAS_SIZE,
-                     &label_dsc,
+    canvas_draw_text(canvas, 0, 0, CANVAS_SIZE, &label_dsc,
                      state->connected ? LV_SYMBOL_WIFI : LV_SYMBOL_CLOSE);
 
     rotate_canvas(canvas);
@@ -166,9 +138,7 @@ static void set_battery_status(struct zmk_widget_status *widget,
 static void battery_status_update_cb(struct battery_status_state state) {
     struct zmk_widget_status *widget;
 
-    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        set_battery_status(widget, state);
-    }
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) { set_battery_status(widget, state); }
 }
 
 static struct battery_status_state battery_status_get_state(const zmk_event_t *eh) {
@@ -180,10 +150,8 @@ static struct battery_status_state battery_status_get_state(const zmk_event_t *e
     };
 }
 
-ZMK_DISPLAY_WIDGET_LISTENER(widget_battery_status,
-                            struct battery_status_state,
-                            battery_status_update_cb,
-                            battery_status_get_state)
+ZMK_DISPLAY_WIDGET_LISTENER(widget_battery_status, struct battery_status_state,
+                            battery_status_update_cb, battery_status_get_state)
 
 ZMK_SUBSCRIPTION(widget_battery_status, zmk_battery_state_changed);
 
@@ -207,15 +175,11 @@ static void set_connection_status(struct zmk_widget_status *widget,
 static void output_status_update_cb(struct peripheral_status_state state) {
     struct zmk_widget_status *widget;
 
-    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        set_connection_status(widget, state);
-    }
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) { set_connection_status(widget, state); }
 }
 
-ZMK_DISPLAY_WIDGET_LISTENER(widget_peripheral_status,
-                            struct peripheral_status_state,
-                            output_status_update_cb,
-                            get_state)
+ZMK_DISPLAY_WIDGET_LISTENER(widget_peripheral_status, struct peripheral_status_state,
+                            output_status_update_cb, get_state)
 
 ZMK_SUBSCRIPTION(widget_peripheral_status, zmk_split_peripheral_status_changed);
 
@@ -229,15 +193,18 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
 
     lv_obj_t *art = lv_image_create(widget->obj);
 
-    uint32_t rand = sys_rand32_get();
-
     widget->art = art;
     widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
 
     const size_t slide_count = sizeof(anim_imgs) / sizeof(anim_imgs[0]);
 
-    widget->slide_index = slide_count ? rand % slide_count : 0;
-
+    #if IS_ENABLED(CONFIG_PERIPHERAL_STATUS_SLIDESHOW_RANDOM)
+        uint32_t rand = sys_rand32_get();
+        widget->slide_index = slide_count ? rand % slide_count : 0;
+    #else
+        widget->slide_index = 0;
+    #endif
+    
     if (slide_count > 0) {
         lv_image_set_src(art, anim_imgs[widget->slide_index]);
     } else {
@@ -246,9 +213,8 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
 
     lv_obj_align(art, PERIPHERAL_ALIGN, 0, 0);
 
-    widget->slideshow_timer = lv_timer_create(peripheral_status_slideshow_cb,
-                                              widget->slideshow_interval_ms,
-                                              widget);
+    widget->slideshow_timer =
+        lv_timer_create(peripheral_status_slideshow_cb, widget->slideshow_interval_ms, widget);
 
     sys_slist_append(&widgets, &widget->node);
 
@@ -258,6 +224,4 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     return 0;
 }
 
-lv_obj_t *zmk_widget_status_obj(struct zmk_widget_status *widget) {
-    return widget->obj;
-}
+lv_obj_t *zmk_widget_status_obj(struct zmk_widget_status *widget) { return widget->obj; }

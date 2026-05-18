@@ -48,6 +48,14 @@ config NICE_VIEW_WIDGET_SLIDESHOW_INTERVAL_MS
     default 2000
     depends on NICE_VIEW_WIDGET_STATUS
 
+config PERIPHERAL_STATUS_SLIDESHOW_RANDOM
+    bool "Start peripheral slideshow at random image"
+    default y
+    depends on NICE_VIEW_WIDGET_STATUS
+    help
+      If enabled, the slideshow starts from a random image.
+      If disabled, the slideshow starts from the first image in anim_imgs[].
+
 if !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
 
 config NICE_VIEW_WIDGET_STATUS
