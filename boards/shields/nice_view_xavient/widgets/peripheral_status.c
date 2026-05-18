@@ -25,56 +25,138 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 // AUTO-GENERATED SLIDESHOW IMAGES START
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
 
-LV_IMAGE_DECLARE(imgFiveLeft);
-LV_IMAGE_DECLARE(imgFourLeft);
-LV_IMAGE_DECLARE(imgOneLeft);
-LV_IMAGE_DECLARE(imgSevenLeft);
-LV_IMAGE_DECLARE(imgSixLeft);
-LV_IMAGE_DECLARE(imgThreeLeft);
-LV_IMAGE_DECLARE(imgTwoLeft);
+LV_IMAGE_DECLARE(imageleftA);
+LV_IMAGE_DECLARE(imageleftB);
+LV_IMAGE_DECLARE(imageleftC);
+LV_IMAGE_DECLARE(imageleftD);
+LV_IMAGE_DECLARE(imageleftE);
+LV_IMAGE_DECLARE(imageleftG);
+LV_IMAGE_DECLARE(imageleftH);
+LV_IMAGE_DECLARE(imageleftI);
+LV_IMAGE_DECLARE(imageleftJ);
+LV_IMAGE_DECLARE(imageleftK);
+LV_IMAGE_DECLARE(imageleftL);
+LV_IMAGE_DECLARE(imageleftM);
+LV_IMAGE_DECLARE(imageleftN);
+LV_IMAGE_DECLARE(imageleftO);
+LV_IMAGE_DECLARE(imageleftP);
+LV_IMAGE_DECLARE(imageleftQ);
+LV_IMAGE_DECLARE(imageleftR);
 
 static const lv_image_dsc_t *anim_imgs[] = {
-    &imgFiveLeft, &imgFourLeft, &imgOneLeft, &imgSevenLeft, &imgSixLeft, &imgThreeLeft, &imgTwoLeft,
+    &imageleftA,
+    &imageleftB,
+    &imageleftC,
+    &imageleftD,
+    &imageleftE,
+    &imageleftG,
+    &imageleftH,
+    &imageleftI,
+    &imageleftJ,
+    &imageleftK,
+    &imageleftL,
+    &imageleftM,
+    &imageleftN,
+    &imageleftO,
+    &imageleftP,
+    &imageleftQ,
+    &imageleftR,
 };
 
 #define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
 
 #elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
 
-LV_IMAGE_DECLARE(imgEightRight);
-LV_IMAGE_DECLARE(imgFourRight);
-LV_IMAGE_DECLARE(imgOneRight);
-LV_IMAGE_DECLARE(imgSevenRight);
-LV_IMAGE_DECLARE(imgSixRight);
-LV_IMAGE_DECLARE(imgThreeRight);
-LV_IMAGE_DECLARE(imgTwoRight);
+LV_IMAGE_DECLARE(imagerightA);
+LV_IMAGE_DECLARE(imagerightB);
+LV_IMAGE_DECLARE(imagerightC);
+LV_IMAGE_DECLARE(imagerightD);
+LV_IMAGE_DECLARE(imagerightE);
+LV_IMAGE_DECLARE(imagerightF);
+LV_IMAGE_DECLARE(imagerightG);
+LV_IMAGE_DECLARE(imagerightH);
+LV_IMAGE_DECLARE(imagerightI);
+LV_IMAGE_DECLARE(imagerightJ);
+LV_IMAGE_DECLARE(imagerightK);
+LV_IMAGE_DECLARE(imagerightL);
+LV_IMAGE_DECLARE(imagerightM);
+LV_IMAGE_DECLARE(imagerightN);
+LV_IMAGE_DECLARE(imagerightO);
+LV_IMAGE_DECLARE(imagerightP);
+LV_IMAGE_DECLARE(imagerightQ);
+LV_IMAGE_DECLARE(imagerightR);
 
 static const lv_image_dsc_t *anim_imgs[] = {
-    &imgEightRight, &imgFourRight,  &imgOneRight, &imgSevenRight,
-    &imgSixRight,   &imgThreeRight, &imgTwoRight,
+    &imagerightA,
+    &imagerightB,
+    &imagerightC,
+    &imagerightD,
+    &imagerightE,
+    &imagerightF,
+    &imagerightG,
+    &imagerightH,
+    &imagerightI,
+    &imagerightJ,
+    &imagerightK,
+    &imagerightL,
+    &imagerightM,
+    &imagerightN,
+    &imagerightO,
+    &imagerightP,
+    &imagerightQ,
+    &imagerightR,
 };
 
 #define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
 
 #else
 
-LV_IMAGE_DECLARE(imgEightRight);
-LV_IMAGE_DECLARE(imgFourRight);
-LV_IMAGE_DECLARE(imgOneRight);
-LV_IMAGE_DECLARE(imgSevenRight);
-LV_IMAGE_DECLARE(imgSixRight);
-LV_IMAGE_DECLARE(imgThreeRight);
-LV_IMAGE_DECLARE(imgTwoRight);
+LV_IMAGE_DECLARE(imagerightA);
+LV_IMAGE_DECLARE(imagerightB);
+LV_IMAGE_DECLARE(imagerightC);
+LV_IMAGE_DECLARE(imagerightD);
+LV_IMAGE_DECLARE(imagerightE);
+LV_IMAGE_DECLARE(imagerightF);
+LV_IMAGE_DECLARE(imagerightG);
+LV_IMAGE_DECLARE(imagerightH);
+LV_IMAGE_DECLARE(imagerightI);
+LV_IMAGE_DECLARE(imagerightJ);
+LV_IMAGE_DECLARE(imagerightK);
+LV_IMAGE_DECLARE(imagerightL);
+LV_IMAGE_DECLARE(imagerightM);
+LV_IMAGE_DECLARE(imagerightN);
+LV_IMAGE_DECLARE(imagerightO);
+LV_IMAGE_DECLARE(imagerightP);
+LV_IMAGE_DECLARE(imagerightQ);
+LV_IMAGE_DECLARE(imagerightR);
 
 static const lv_image_dsc_t *anim_imgs[] = {
-    &imgEightRight, &imgFourRight,  &imgOneRight, &imgSevenRight,
-    &imgSixRight,   &imgThreeRight, &imgTwoRight,
+    &imagerightA,
+    &imagerightB,
+    &imagerightC,
+    &imagerightD,
+    &imagerightE,
+    &imagerightF,
+    &imagerightG,
+    &imagerightH,
+    &imagerightI,
+    &imagerightJ,
+    &imagerightK,
+    &imagerightL,
+    &imagerightM,
+    &imagerightN,
+    &imagerightO,
+    &imagerightP,
+    &imagerightQ,
+    &imagerightR,
 };
 
 #define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
 
 #endif
 // AUTO-GENERATED SLIDESHOW IMAGES END
+
+
 
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT)
 LV_IMAGE_DECLARE(left);
