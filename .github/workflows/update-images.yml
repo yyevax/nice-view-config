@@ -3,8 +3,7 @@ name: Update Nice!View Images
 on:
   push:
     paths:
-      - 'assets/left/**'
-      - 'assets/right/**'
+      - 'assets/**'
   workflow_dispatch:
 
 permissions:
@@ -69,227 +68,79 @@ jobs:
             cat "$file" >> boards/shields/nice_view_xavient/widgets/art.c
             echo "" >> boards/shields/nice_view_xavient/widgets/art.c
           fi
+        done
 
-      - name: Generate left.c and right.c files
-        if: steps.check_images.outputs.images_exist == 'true'
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-          import re
+    - name: Update peripheral_status.c (replace LV_IMG_DECLARE + anim_imgs array)
+      if: steps.check_images.outputs.images_exist == 'true'
+      run: |
+        python3 << 'EOF'
+        import re
+        from pathlib import Path
 
-          def generate_combined_file(side):
-              converted_dir = Path(f"converted/{side}")
-              output_file = Path(f"boards/shields/nice_view_xavient/widgets/{side}.c")
+        converted_dir = Path("converted")
+        peripheral_file = Path("boards/shields/nice_view_xavient/widgets/peripheral_status.c")
 
-              files = sorted(converted_dir.glob("*.c"))
+        if not peripheral_file.exists():
+            print("peripheral_status.c not found; skipping.")
+            exit(0)
 
-              body_parts = []
-              macros = {
-                  "LV_ATTRIBUTE_MEM_ALIGN",
-                  "LV_ATTRIBUTE_LARGE_CONST",
-              }
+        # Collect converted image stems (deterministic order)
+        converted = sorted([p.stem for p in converted_dir.glob("*.c")])
+        if not converted:
+            print("No converted images; skipping peripheral_status.c modifications.")
+            exit(0)
 
-              for file in files:
-                  text = file.read_text(encoding="utf-8")
+        content = peripheral_file.read_text(encoding="utf-8")
 
-                  text = re.sub(
-                      r'^\s*#include\s+<lvgl\.h>\s*\n?',
-                      '',
-                      text,
-                      flags=re.MULTILINE,
-                  )
+        # Build new declarations block
+        decl_block = "\n".join(f"LV_IMG_DECLARE({stem});" for stem in converted)
 
-                  text = re.sub(
-                      r'\s*#ifndef\s+LV_ATTRIBUTE_MEM_ALIGN\s*\n\s*#define\s+LV_ATTRIBUTE_MEM_ALIGN\s*\n\s*#endif\s*\n?',
-                      '\n',
-                      text,
-                      flags=re.MULTILINE,
-                  )
+        # Build new anim_imgs array
+        anim_array = "const lv_img_dsc_t *anim_imgs[] = {\n" + \
+                     "".join(f"    &{stem},\n" for stem in converted) + \
+                     "};"
 
-                  text = re.sub(
-                      r'\s*#ifndef\s+LV_ATTRIBUTE_LARGE_CONST\s*\n\s*#define\s+LV_ATTRIBUTE_LARGE_CONST\s*\n\s*#endif\s*\n?',
-                      '\n',
-                      text,
-                      flags=re.MULTILINE,
-                  )
+        replacement_block = f"{decl_block}\n\n{anim_array}"
 
-                  macros.update(re.findall(r'\bLV_ATTRIBUTE_IMG_[A-Za-z0-9_]+\b', text))
+        # Regex to find existing declarations + anim_imgs array
+        # Matches one or more LV_IMG_DECLARE(...) lines followed by the anim_imgs array definition.
+        pattern = re.compile(
+            r'(?:LV_IMG_DECLARE\([^)]+\);\s*)+\nconst\s+lv_img_dsc_t\s*\*\s*anim_imgs\[\]\s*=\s*\{.*?\};',
+            re.DOTALL
+        )
 
-                  body_parts.append(text.strip())
+        if pattern.search(content):
+            new_content = pattern.sub(replacement_block, content)
+            print("Replaced existing LV_IMG_DECLARE + anim_imgs block.")
+        else:
+            # Fallback: insert after last #include line
+            include_pattern = re.compile(r'(#include[^\n]+\n)+', re.DOTALL)
+            m = include_pattern.search(content)
+            if m:
+                idx = m.end()
+                new_content = content[:idx] + "\n" + replacement_block + "\n\n" + content[idx:]
+                print("Inserted declarations + anim_imgs block after includes (previous block not found).")
+            else:
+                # As a last resort, prepend
+                new_content = replacement_block + "\n\n" + content
+                print("Prepended declarations + anim_imgs block (includes not found).")
 
-              header = [
-                  "#include <lvgl.h>",
-                  "",
-              ]
+        peripheral_file.write_text(new_content, encoding="utf-8")
+        print(f"Updated peripheral_status.c with {len(converted)} images.")
+        EOF
 
-              for macro in sorted(macros):
-                  header.extend([
-                      f"#ifndef {macro}",
-                      f"#define {macro}",
-                      "#endif",
-                      "",
-                  ])
+    - name: Commit and push changes
+      if: steps.check_images.outputs.images_exist == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
 
-              output_file.write_text(
-                  "\n".join(header) + "\n\n" + "\n\n".join(body_parts) + "\n",
-                  encoding="utf-8",
-              )
+        git add boards/shields/nice_view_xavient/widgets/art.c
+        git add boards/shields/nice_view_xavient/widgets/peripheral_status.c
 
-              print(f"Wrote {output_file} with {len(files)} converted images.")
-
-          generate_combined_file("left")
-          generate_combined_file("right")
-          PY
-
-      - name: Update peripheral_status.c for side-specific slideshow
-        if: steps.check_images.outputs.images_exist == 'true'
-        run: |
-          python3 <<'EOF'
-          import re
-          from pathlib import Path
-
-          converted_left_dir = Path("converted/left")
-          converted_right_dir = Path("converted/right")
-          peripheral_file = Path("boards/shields/nice_view_xavient/widgets/peripheral_status.c")
-
-          if not peripheral_file.exists():
-              print("peripheral_status.c not found; skipping.")
-              exit(0)
-
-          left_images = sorted([p.stem for p in converted_left_dir.glob("*.c")])
-          right_images = sorted([p.stem for p in converted_right_dir.glob("*.c")])
-
-          if not left_images and not right_images:
-              print("No converted images; skipping peripheral_status.c modifications.")
-              exit(0)
-
-          content = peripheral_file.read_text(encoding="utf-8")
-
-          auto_block_pattern = re.compile(
-              r'\n?// AUTO-GENERATED SLIDESHOW IMAGES START\n.*?// AUTO-GENERATED SLIDESHOW IMAGES END\n?',
-              re.DOTALL,
-          )
-          content = auto_block_pattern.sub("\n", content)
-
-          def declare_images(images):
-              return "\n".join(f"LV_IMAGE_DECLARE({stem});" for stem in images)
-
-          def image_array(images):
-              lines = ["static const lv_image_dsc_t *anim_imgs[] = {"]
-              lines.extend(f"    &{stem}," for stem in images)
-              lines.append("};")
-              return "\n".join(lines)
-
-          generated_block = (
-              "// AUTO-GENERATED SLIDESHOW IMAGES START\n"
-              "#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)\n\n"
-              f"{declare_images(left_images)}\n\n"
-              f"{image_array(left_images)}\n\n"
-              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
-              "#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)\n\n"
-              f"{declare_images(right_images)}\n\n"
-              f"{image_array(right_images)}\n\n"
-              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
-              "#else\n\n"
-              f"{declare_images(right_images)}\n\n"
-              f"{image_array(right_images)}\n\n"
-              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
-              "#endif\n"
-              "// AUTO-GENERATED SLIDESHOW IMAGES END\n"
-          )
-
-          include_line = '#include "peripheral_status.h"'
-          if include_line not in content:
-              print('Could not find #include "peripheral_status.h"; skipping.')
-              exit(1)
-
-          content = content.replace(
-              include_line,
-              include_line + "\n\n" + generated_block,
-              1,
-          )
-
-          old_init_pattern = re.compile(
-              r"""uint32_t rand = sys_rand32_get\(\);\s*
-
-              \s*widget->align_left = rand & 0x1;
-              \s*widget->art = art;
-              \s*widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
-
-              \s*const lv_image_dsc_t \*\*initial_imgs = widget->align_left \? left_anim_imgs : right_anim_imgs;
-
-              \s*const size_t initial_count = widget->align_left \?
-              \s*\(sizeof\(left_anim_imgs\) / sizeof\(left_anim_imgs\[0\]\)\) :
-              \s*\(sizeof\(right_anim_imgs\) / sizeof\(right_anim_imgs\[0\]\)\);
-
-              \s*widget->slide_index = initial_count \? rand % initial_count : 0;
-
-              \s*if \(initial_count > 0\) {
-              \s*lv_image_set_src\(art, initial_imgs\[widget->slide_index\]\);
-              \s*} else {
-              \s*lv_image_set_src\(art, &PERIPHERAL_IMAGE\);
-              \s*}
-
-              \s*lv_obj_align\(art,
-              \s*widget->align_left \? LV_ALIGN_TOP_LEFT : LV_ALIGN_TOP_RIGHT,
-              \s*0,
-              \s*0\);""",
-              re.DOTALL,
-          )
-
-          new_init_block = """uint32_t rand = sys_rand32_get();
-
-          widget->art = art;
-          widget->slideshow_interval_ms = PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
-
-          const size_t slide_count = sizeof(anim_imgs) / sizeof(anim_imgs[0]);
-
-          widget->slide_index = slide_count ? rand % slide_count : 0;
-
-          if (slide_count > 0) {
-              lv_image_set_src(art, anim_imgs[widget->slide_index]);
-          } else {
-              lv_image_set_src(art, &PERIPHERAL_IMAGE);
-          }
-
-          lv_obj_align(art, PERIPHERAL_ALIGN, 0, 0);"""
-
-          content, replacements = old_init_pattern.subn(new_init_block, content)
-
-          if replacements == 0:
-              print("Warning: old init block was not found. It may already be updated.")
-
-          peripheral_file.write_text(content, encoding="utf-8")
-          print(f"Updated peripheral_status.c with {len(left_images)} left images and {len(right_images)} right images.")
-          EOF
-
-      - name: Commit and push changes
-        if: steps.check_images.outputs.images_exist == 'true'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-
-          git add boards/shields/nice_view_xavient/widgets/left.c
-          git add boards/shields/nice_view_xavient/widgets/right.c
-          git add boards/shields/nice_view_xavient/widgets/peripheral_status.c
-
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "🤖 Auto-update left/right slideshow images and peripheral_status declarations."
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+            git commit -m "🤖 Auto-update Nice!View images and peripheral_status declarations."
             git push
-          fi
-
-  trigger-zmk-build:
-    needs: update-images
-    runs-on: ubuntu-latest
-    if: success()
-
-    steps:
-      - name: Trigger zmk-config-xavient build
-        env:
-          GH_TOKEN: ${{ secrets.ZMK_CONFIG_PAT }}
-        run: |
-          gh workflow run "Build ZMK firmware" \
-            --repo yyevax/zmk-config-xavient \
-            --ref experimental/zmk-studio-3x6-displays
+        fi
