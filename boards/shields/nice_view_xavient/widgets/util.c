@@ -39,6 +39,21 @@ void draw_battery(lv_obj_t *canvas, const struct status_state *state) {
     }
 }
 
+void pct_battery(lv_obj_t *canvas, const struct status_state *state) {
+    lv_draw_label_dsc_t label_dsc;
+    init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_16, LV_TEXT_ALIGN_LEFT);
+
+    char battery_text[8] = {};
+
+    if (state->charging) {
+        snprintf(battery_text, sizeof(battery_text), "%d%%+", state->battery);
+    } else {
+        snprintf(battery_text, sizeof(battery_text), "%d%%", state->battery);
+    }
+
+    canvas_draw_text(canvas, 0, 0, 45, &label_dsc, battery_text);
+}
+
 void init_label_dsc(lv_draw_label_dsc_t *label_dsc, lv_color_t color, const lv_font_t *font,
                     lv_text_align_t align) {
     lv_draw_label_dsc_init(label_dsc);
