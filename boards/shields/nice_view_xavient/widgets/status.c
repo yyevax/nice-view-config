@@ -26,6 +26,19 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/keymap.h>
 #include <zmk/wpm.h>
 
+// AUTO-GENERATED STATUS IMAGE START
+#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
+LV_IMAGE_DECLARE(left);
+#define STATUS_IMAGE left
+#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
+LV_IMAGE_DECLARE(right);
+#define STATUS_IMAGE right
+#else
+LV_IMAGE_DECLARE(right);
+#define STATUS_IMAGE right
+#endif
+// AUTO-GENERATED STATUS IMAGE END
+
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -335,7 +348,7 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_obj_set_size(widget->obj, 160, 68);
     
     lv_obj_t *art = lv_img_create(widget->obj);
-    lv_image_set_src(art, &left);
+    lv_image_set_src(art, &STATUS_IMAGE);
     lv_obj_align(art, LV_ALIGN_TOP_LEFT, 0, 0);
     
     lv_obj_t *top = lv_canvas_create(widget->obj);
