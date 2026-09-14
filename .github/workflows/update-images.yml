@@ -221,19 +221,23 @@ jobs:
 
           generated_block = (
               "// AUTO-GENERATED SLIDESHOW IMAGES START\n"
+
               "#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || "
               "IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)\n\n"
+
               f"{declare_images(left_images)}\n\n"
               f"{image_array(left_images)}\n\n"
               "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
 
               "#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || "
               "IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)\n\n"
+
               f"{declare_images(right_images)}\n\n"
               f"{image_array(right_images)}\n\n"
               "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
 
               "#else\n\n"
+
               f"{declare_images(right_images)}\n\n"
               f"{image_array(right_images)}\n\n"
               "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
@@ -440,25 +444,26 @@ jobs:
 
               return "\n".join(lines)
 
+          # --------------------------------------------------------
+          # STATUS.C ONLY USES MASTER CONFIGURATIONS
+          # --------------------------------------------------------
+
           generated_block = (
               "// AUTO-GENERATED STATUS SLIDESHOW IMAGES START\n"
 
-              "#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || "
-              "IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)\n\n"
+              "#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)\n\n"
 
               f"{declare_images(left_images)}\n\n"
               f"{image_array(left_images)}\n\n"
 
-              "#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || "
-              "IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)\n\n"
+              "#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)\n\n"
 
               f"{declare_images(right_images)}\n\n"
               f"{image_array(right_images)}\n\n"
 
               "#else\n\n"
 
-              f"{declare_images(right_images)}\n\n"
-              f"{image_array(right_images)}\n\n"
+              '#error "status.c requires CONFIG_SHIELD_XAVIEN_LEFT_MASTER or CONFIG_SHIELD_XAVIEN_RIGHT_MASTER"\n\n'
 
               "#endif\n"
 
@@ -622,12 +627,12 @@ jobs:
                       1,
                   )
 
-                  if old_image_reference in content:
-                      content = content.replace(
-                          old_image_reference,
-                          "lv_image_set_src(art, status_imgs[0]);",
-                          1,
-                      )
+              if old_image_reference in content:
+                  content = content.replace(
+                      old_image_reference,
+                      "lv_image_set_src(art, status_imgs[0]);",
+                      1,
+                  )
 
           status_file.write_text(
               content,
