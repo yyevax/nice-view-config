@@ -5,14 +5,29 @@ if(CONFIG_ZMK_DISPLAY AND CONFIG_NICE_VIEW_WIDGET_STATUS)
   zephyr_library_sources(widgets/bolt.c)
   zephyr_library_sources(widgets/util.c)
 
-  if(NOT CONFIG_ZMK_SPLIT OR CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
+  # MASTER / CENTRAL
+  if(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
+
     zephyr_library_sources(widgets/status.c)
-    zephyr_library_sources(widgets/left.c)
+
+    if(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
+      zephyr_library_sources(widgets/left.c)
+
+    elseif(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
+      zephyr_library_sources(widgets/right.c)
+    endif()
+
+  # LEFT PERIPHERAL
   elseif(CONFIG_SHIELD_XAVIEN_LEFT)
+
     zephyr_library_sources(widgets/peripheral_status.c)
     zephyr_library_sources(widgets/left.c)
+
+  # RIGHT PERIPHERAL
   elseif(CONFIG_SHIELD_XAVIEN_RIGHT)
+
     zephyr_library_sources(widgets/peripheral_status.c)
     zephyr_library_sources(widgets/right.c)
+
   endif()
 endif()
