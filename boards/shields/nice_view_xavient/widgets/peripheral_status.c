@@ -22,8 +22,8 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include "peripheral_status.h"
 
-// AUTO-GENERATED SLIDESHOW IMAGES START
-#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
+// AUTO-GENERATED STATUS SLIDESHOW IMAGES START
+#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
 
 LV_IMAGE_DECLARE(imageleftA);
 LV_IMAGE_DECLARE(imageleftB);
@@ -65,9 +65,7 @@ static const lv_image_dsc_t *anim_imgs[] = {
     &imageleftR,
 };
 
-#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
-
-#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
+#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
 
 LV_IMAGE_DECLARE(imagerightA);
 LV_IMAGE_DECLARE(imagerightB);
@@ -108,55 +106,15 @@ static const lv_image_dsc_t *anim_imgs[] = {
     &imagerightQ,
     &imagerightR,
 };
-
-#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
 
 #else
 
-LV_IMAGE_DECLARE(imagerightA);
-LV_IMAGE_DECLARE(imagerightB);
-LV_IMAGE_DECLARE(imagerightC);
-LV_IMAGE_DECLARE(imagerightD);
-LV_IMAGE_DECLARE(imagerightE);
-LV_IMAGE_DECLARE(imagerightF);
-LV_IMAGE_DECLARE(imagerightG);
-LV_IMAGE_DECLARE(imagerightH);
-LV_IMAGE_DECLARE(imagerightI);
-LV_IMAGE_DECLARE(imagerightJ);
-LV_IMAGE_DECLARE(imagerightK);
-LV_IMAGE_DECLARE(imagerightL);
-LV_IMAGE_DECLARE(imagerightM);
-LV_IMAGE_DECLARE(imagerightN);
-LV_IMAGE_DECLARE(imagerightO);
-LV_IMAGE_DECLARE(imagerightP);
-LV_IMAGE_DECLARE(imagerightQ);
-LV_IMAGE_DECLARE(imagerightR);
-
-static const lv_image_dsc_t *anim_imgs[] = {
-    &imagerightA,
-    &imagerightB,
-    &imagerightC,
-    &imagerightD,
-    &imagerightE,
-    &imagerightF,
-    &imagerightG,
-    &imagerightH,
-    &imagerightI,
-    &imagerightJ,
-    &imagerightK,
-    &imagerightL,
-    &imagerightM,
-    &imagerightN,
-    &imagerightO,
-    &imagerightP,
-    &imagerightQ,
-    &imagerightR,
-};
-
-#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT
+#error "status.c requires a master shield configuration"
 
 #endif
-// AUTO-GENERATED SLIDESHOW IMAGES END
+// AUTO-GENERATED STATUS SLIDESHOW IMAGES END
+
+
 
 
 
