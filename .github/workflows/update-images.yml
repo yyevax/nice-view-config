@@ -3,7 +3,8 @@ name: Update Nice!View Images
 on:
   push:
     paths:
-      - 'assets/**'
+      - 'assets/left/**'
+      - 'assets/right/**'
   workflow_dispatch:
 
 permissions:
@@ -14,133 +15,673 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.AUTH_DISPLAY }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AUTH_DISPLAY }}
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install Pillow
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install Pillow
 
-    - name: Check for images in assets folder
-      id: check_images
-      run: |
-        if [ -d "assets" ] && [ "$(find assets -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) | wc -l)" -gt 0 ]; then
-          echo "images_exist=true" >> $GITHUB_OUTPUT
-          echo "Found images in assets folder"
-        else
-          echo "images_exist=false" >> $GITHUB_OUTPUT
-          echo "No images found in assets folder"
-        fi
+      - name: Check for left and right images
+        id: check_images
+        run: |
+          if [ -d "assets/left" ] && [ -d "assets/right" ] && \
+             ([ "$(find assets/left -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) | wc -l)" -gt 0 ] || \
+              [ "$(find assets/right -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) | wc -l)" -gt 0 ]); then
 
-    - name: Convert images to C arrays
-      if: steps.check_images.outputs.images_exist == 'true'
-      run: |
-        # Create output directory for converted files
-        mkdir -p converted
-
-        # Convert all images in assets folder
-        find assets -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) -exec python3 scripts/niceview_lvgl_convert.py {} --outdir converted \;
-
-    - name: Generate art.c file
-      if: steps.check_images.outputs.images_exist == 'true'
-      run: |
-        # Start building the new art.c file
-        cat > boards/shields/nice_view_xavient/widgets/art.c << 'EOF'
-        #include <lvgl.h>
-
-        #ifndef LV_ATTRIBUTE_MEM_ALIGN
-        #define LV_ATTRIBUTE_MEM_ALIGN
-        #endif
-
-        EOF
-
-        # Process each converted file
-        for file in converted/*.c; do
-          if [ -f "$file" ]; then
-            cat "$file" >> boards/shields/nice_view_xavient/widgets/art.c
-            echo "" >> boards/shields/nice_view_xavient/widgets/art.c
+            echo "images_exist=true" >> "$GITHUB_OUTPUT"
+            echo "Found images in assets/left or assets/right"
+          else
+            echo "images_exist=false" >> "$GITHUB_OUTPUT"
+            echo "No images found in assets/left or assets/right"
           fi
-        done
 
-    - name: Update peripheral_status.c (replace LV_IMG_DECLARE + anim_imgs array)
-      if: steps.check_images.outputs.images_exist == 'true'
-      run: |
-        python3 << 'EOF'
-        import re
-        from pathlib import Path
+      - name: Convert left and right images to C arrays
+        if: steps.check_images.outputs.images_exist == 'true'
+        run: |
+          rm -rf converted
+          mkdir -p converted/left converted/right
 
-        converted_dir = Path("converted")
-        peripheral_file = Path("boards/shields/nice_view_xavient/widgets/peripheral_status.c")
+          if [ -d "assets/left" ]; then
+            find assets/left -type f \
+              \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) \
+              -exec python3 scripts/niceview_lvgl_convert.py {} --outdir converted/left \;
+          fi
 
-        if not peripheral_file.exists():
-            print("peripheral_status.c not found; skipping.")
-            exit(0)
+          if [ -d "assets/right" ]; then
+            find assets/right -type f \
+              \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) \
+              -exec python3 scripts/niceview_lvgl_convert.py {} --outdir converted/right \;
+          fi
 
-        # Collect converted image stems (deterministic order)
-        converted = sorted([p.stem for p in converted_dir.glob("*.c")])
-        if not converted:
-            print("No converted images; skipping peripheral_status.c modifications.")
-            exit(0)
+      - name: Generate left.c and right.c files
+        if: steps.check_images.outputs.images_exist == 'true'
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
 
-        content = peripheral_file.read_text(encoding="utf-8")
+          def generate_combined_file(side):
+              converted_dir = Path(f"converted/{side}")
 
-        # Build new declarations block
-        decl_block = "\n".join(f"LV_IMG_DECLARE({stem});" for stem in converted)
+              output_file = Path(
+                  f"boards/shields/nice_view_xavient/widgets/{side}.c"
+              )
 
-        # Build new anim_imgs array
-        anim_array = "const lv_img_dsc_t *anim_imgs[] = {\n" + \
-                     "".join(f"    &{stem},\n" for stem in converted) + \
-                     "};"
+              files = sorted(converted_dir.glob("*.c"))
 
-        replacement_block = f"{decl_block}\n\n{anim_array}"
+              body_parts = []
 
-        # Regex to find existing declarations + anim_imgs array
-        # Matches one or more LV_IMG_DECLARE(...) lines followed by the anim_imgs array definition.
-        pattern = re.compile(
-            r'(?:LV_IMG_DECLARE\([^)]+\);\s*)+\nconst\s+lv_img_dsc_t\s*\*\s*anim_imgs\[\]\s*=\s*\{.*?\};',
-            re.DOTALL
-        )
+              macros = {
+                  "LV_ATTRIBUTE_MEM_ALIGN",
+                  "LV_ATTRIBUTE_LARGE_CONST",
+              }
 
-        if pattern.search(content):
-            new_content = pattern.sub(replacement_block, content)
-            print("Replaced existing LV_IMG_DECLARE + anim_imgs block.")
-        else:
-            # Fallback: insert after last #include line
-            include_pattern = re.compile(r'(#include[^\n]+\n)+', re.DOTALL)
-            m = include_pattern.search(content)
-            if m:
-                idx = m.end()
-                new_content = content[:idx] + "\n" + replacement_block + "\n\n" + content[idx:]
-                print("Inserted declarations + anim_imgs block after includes (previous block not found).")
-            else:
-                # As a last resort, prepend
-                new_content = replacement_block + "\n\n" + content
-                print("Prepended declarations + anim_imgs block (includes not found).")
+              for file in files:
+                  text = file.read_text(encoding="utf-8")
 
-        peripheral_file.write_text(new_content, encoding="utf-8")
-        print(f"Updated peripheral_status.c with {len(converted)} images.")
-        EOF
+                  text = re.sub(
+                      r'^\s*#include\s+<lvgl\.h>\s*\n?',
+                      '',
+                      text,
+                      flags=re.MULTILINE,
+                  )
 
-    - name: Commit and push changes
-      if: steps.check_images.outputs.images_exist == 'true'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+                  text = re.sub(
+                      r'\s*#ifndef\s+LV_ATTRIBUTE_MEM_ALIGN\s*\n'
+                      r'\s*#define\s+LV_ATTRIBUTE_MEM_ALIGN\s*\n'
+                      r'\s*#endif\s*\n?',
+                      '\n',
+                      text,
+                      flags=re.MULTILINE,
+                  )
 
-        git add boards/shields/nice_view_xavient/widgets/art.c
-        git add boards/shields/nice_view_xavient/widgets/peripheral_status.c
+                  text = re.sub(
+                      r'\s*#ifndef\s+LV_ATTRIBUTE_LARGE_CONST\s*\n'
+                      r'\s*#define\s+LV_ATTRIBUTE_LARGE_CONST\s*\n'
+                      r'\s*#endif\s*\n?',
+                      '\n',
+                      text,
+                      flags=re.MULTILINE,
+                  )
 
-        if git diff --staged --quiet; then
-          echo "No changes to commit"
-        else
-            git commit -m "🤖 Auto-update Nice!View images and peripheral_status declarations."
+                  macros.update(
+                      re.findall(
+                          r'\bLV_ATTRIBUTE_IMG_[A-Za-z0-9_]+\b',
+                          text,
+                      )
+                  )
+
+                  body_parts.append(text.strip())
+
+              header = [
+                  "#include <lvgl.h>",
+                  "",
+              ]
+
+              for macro in sorted(macros):
+                  header.extend([
+                      f"#ifndef {macro}",
+                      f"#define {macro}",
+                      "#endif",
+                      "",
+                  ])
+
+              output_file.write_text(
+                  "\n".join(header)
+                  + "\n\n"
+                  + "\n\n".join(body_parts)
+                  + "\n",
+                  encoding="utf-8",
+              )
+
+              print(
+                  f"Wrote {output_file} with {len(files)} converted images."
+              )
+
+          generate_combined_file("left")
+          generate_combined_file("right")
+          PY
+
+      # ============================================================
+      # PERIPHERAL STATUS
+      # ============================================================
+
+      - name: Update peripheral_status.c for side-specific slideshow
+        if: steps.check_images.outputs.images_exist == 'true'
+        run: |
+          python3 <<'PY'
+          import re
+          from pathlib import Path
+
+          converted_left_dir = Path("converted/left")
+          converted_right_dir = Path("converted/right")
+
+          peripheral_file = Path(
+              "boards/shields/nice_view_xavient/widgets/peripheral_status.c"
+          )
+
+          if not peripheral_file.exists():
+              print("peripheral_status.c not found; skipping.")
+              exit(0)
+
+          left_images = sorted(
+              [p.stem for p in converted_left_dir.glob("*.c")]
+          )
+
+          right_images = sorted(
+              [p.stem for p in converted_right_dir.glob("*.c")]
+          )
+
+          if not left_images and not right_images:
+              print(
+                  "No converted images; skipping peripheral_status.c modifications."
+              )
+              exit(0)
+
+          content = peripheral_file.read_text(encoding="utf-8")
+
+          # Remove previous auto-generated slideshow block.
+          auto_block_pattern = re.compile(
+              r'\n?// AUTO-GENERATED SLIDESHOW IMAGES START\n'
+              r'.*?'
+              r'// AUTO-GENERATED SLIDESHOW IMAGES END\n?',
+              re.DOTALL,
+          )
+
+          content = auto_block_pattern.sub("\n", content)
+
+          def declare_images(images):
+              return "\n".join(
+                  f"LV_IMAGE_DECLARE({stem});"
+                  for stem in images
+              )
+
+          def image_array(images):
+              lines = [
+                  "static const lv_image_dsc_t *anim_imgs[] = {"
+              ]
+
+              lines.extend(
+                  f"    &{stem},"
+                  for stem in images
+              )
+
+              lines.append("};")
+
+              return "\n".join(lines)
+
+          generated_block = (
+              "// AUTO-GENERATED SLIDESHOW IMAGES START\n"
+
+              "#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || "
+              "IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)\n\n"
+
+              f"{declare_images(left_images)}\n\n"
+              f"{image_array(left_images)}\n\n"
+              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
+
+              "#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || "
+              "IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)\n\n"
+
+              f"{declare_images(right_images)}\n\n"
+              f"{image_array(right_images)}\n\n"
+              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
+
+              "#else\n\n"
+
+              f"{declare_images(right_images)}\n\n"
+              f"{image_array(right_images)}\n\n"
+              "#define PERIPHERAL_ALIGN LV_ALIGN_TOP_LEFT\n\n"
+
+              "#endif\n"
+              "// AUTO-GENERATED SLIDESHOW IMAGES END\n"
+          )
+
+          include_line = '#include "peripheral_status.h"'
+
+          if include_line not in content:
+              print(
+                  'Could not find #include "peripheral_status.h"; skipping.'
+              )
+              exit(1)
+
+          content = content.replace(
+              include_line,
+              include_line + "\n\n" + generated_block,
+              1,
+          )
+
+          # Update old initialization code if present.
+          old_init_pattern = re.compile(
+              r"""uint32_t rand = sys_rand32_get\(\);\s*
+              \s*widget->align_left = rand & 0x1;
+              \s*widget->art = art;
+              \s*widget->slideshow_interval_ms =
+                  PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
+
+              \s*const lv_image_dsc_t \*\*initial_imgs =
+                  widget->align_left
+                  \? left_anim_imgs
+                  : right_anim_imgs;
+
+              \s*const size_t initial_count =
+                  widget->align_left
+                  \?
+                  \(sizeof\(left_anim_imgs\) /
+                   sizeof\(left_anim_imgs\[0\]\)\)
+                  :
+                  \(sizeof\(right_anim_imgs\) /
+                   sizeof\(right_anim_imgs\[0\]\)\);
+
+              \s*widget->slide_index =
+                  initial_count \? rand % initial_count : 0;
+
+              \s*if \(initial_count > 0\) {
+              \s*lv_image_set_src\(art, initial_imgs\[widget->slide_index\]\);
+              \s*} else {
+              \s*lv_image_set_src\(art, &PERIPHERAL_IMAGE\);
+              \s*}
+
+              \s*lv_obj_align\(art,
+              \s*widget->align_left
+              \s*\? LV_ALIGN_TOP_LEFT
+              \s*: LV_ALIGN_TOP_RIGHT,
+              \s*0,
+              \s*0\);""",
+              re.DOTALL | re.VERBOSE,
+          )
+
+          new_init_block = """uint32_t rand = sys_rand32_get();
+
+          widget->art = art;
+          widget->slideshow_interval_ms =
+              PERIPHERAL_STATUS_SLIDESHOW_INTERVAL_MS;
+
+          const size_t slide_count =
+              sizeof(anim_imgs) / sizeof(anim_imgs[0]);
+
+          widget->slide_index =
+              slide_count ? rand % slide_count : 0;
+
+          if (slide_count > 0) {
+              lv_image_set_src(
+                  art,
+                  anim_imgs[widget->slide_index]
+              );
+          } else {
+              lv_image_set_src(
+                  art,
+                  &PERIPHERAL_IMAGE
+              );
+          }
+
+          lv_obj_align(
+              art,
+              PERIPHERAL_ALIGN,
+              0,
+              0
+          );"""
+
+          content, replacements = old_init_pattern.subn(
+              new_init_block,
+              content,
+          )
+
+          if replacements == 0:
+              print(
+                  "Warning: old init block was not found. "
+                  "It may already be updated."
+              )
+
+          peripheral_file.write_text(
+              content,
+              encoding="utf-8",
+          )
+
+          print(
+              f"Updated peripheral_status.c with "
+              f"{len(left_images)} left images and "
+              f"{len(right_images)} right images."
+          )
+          PY
+
+      # ============================================================
+      # STATUS.C
+      # ============================================================
+
+      - name: Update status.c for side-specific slideshow
+        if: steps.check_images.outputs.images_exist == 'true'
+        run: |
+          python3 <<'PY'
+          import re
+          from pathlib import Path
+
+          converted_left_dir = Path("converted/left")
+          converted_right_dir = Path("converted/right")
+
+          status_file = Path(
+              "boards/shields/nice_view_xavient/widgets/status.c"
+          )
+
+          if not status_file.exists():
+              print("status.c not found; skipping.")
+              exit(0)
+
+          left_images = sorted(
+              [p.stem for p in converted_left_dir.glob("*.c")]
+          )
+
+          right_images = sorted(
+              [p.stem for p in converted_right_dir.glob("*.c")]
+          )
+
+          if not left_images and not right_images:
+              print(
+                  "No converted images; skipping status.c modifications."
+              )
+              exit(0)
+
+          content = status_file.read_text(encoding="utf-8")
+
+          # --------------------------------------------------------
+          # Remove previous generated status slideshow block
+          # --------------------------------------------------------
+
+          auto_block_pattern = re.compile(
+              r'\n?// AUTO-GENERATED STATUS SLIDESHOW IMAGES START\n'
+              r'.*?'
+              r'// AUTO-GENERATED STATUS SLIDESHOW IMAGES END\n?',
+              re.DOTALL,
+          )
+
+          content = auto_block_pattern.sub("\n", content)
+
+          # Also remove the OLD STATUS_IMAGE block from the
+          # previous version of the workflow.
+          old_image_block_pattern = re.compile(
+              r'\n?// AUTO-GENERATED STATUS IMAGE START\n'
+              r'.*?'
+              r'// AUTO-GENERATED STATUS IMAGE END\n?',
+              re.DOTALL,
+          )
+
+          content = old_image_block_pattern.sub("\n", content)
+
+          # --------------------------------------------------------
+          # Generate declarations
+          # --------------------------------------------------------
+
+          def declare_images(images):
+              return "\n".join(
+                  f"LV_IMAGE_DECLARE({stem});"
+                  for stem in images
+              )
+
+          # --------------------------------------------------------
+          # Generate status image array
+          # --------------------------------------------------------
+
+          def image_array(images):
+              lines = [
+                  "static const lv_image_dsc_t *status_imgs[] = {"
+              ]
+
+              lines.extend(
+                  f"    &{stem},"
+                  for stem in images
+              )
+
+              lines.append("};")
+
+              return "\n".join(lines)
+
+          # --------------------------------------------------------
+          # STATUS.C ONLY USES MASTER CONFIGURATIONS
+          # --------------------------------------------------------
+
+          generated_block = (
+              "// AUTO-GENERATED STATUS SLIDESHOW IMAGES START\n"
+
+              "#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)\n\n"
+
+              f"{declare_images(left_images)}\n\n"
+              f"{image_array(left_images)}\n\n"
+
+              "#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)\n\n"
+
+              f"{declare_images(right_images)}\n\n"
+              f"{image_array(right_images)}\n\n"
+
+              "#else\n\n"
+
+              '#error "status.c requires CONFIG_SHIELD_XAVIEN_LEFT_MASTER or CONFIG_SHIELD_XAVIEN_RIGHT_MASTER"\n\n'
+
+              "#endif\n"
+
+              "// AUTO-GENERATED STATUS SLIDESHOW IMAGES END\n"
+          )
+
+          # --------------------------------------------------------
+          # Insert generated declarations after the includes
+          # --------------------------------------------------------
+
+          include_marker = "#include <zmk/wpm.h>"
+
+          if include_marker not in content:
+              print(
+                  "Could not find #include <zmk/wpm.h>; "
+                  "skipping status.c update."
+              )
+              exit(1)
+
+          content = content.replace(
+              include_marker,
+              include_marker + "\n\n" + generated_block,
+              1,
+          )
+
+          # --------------------------------------------------------
+          # Add slideshow callback
+          #
+          # We don't need to modify status.h or the widget struct.
+          # The callback determines the current image by comparing
+          # the current LVGL image source against status_imgs[].
+          # --------------------------------------------------------
+
+          slideshow_callback = r'''
+          static void status_slideshow_cb(lv_timer_t *timer) {
+              lv_obj_t *art = (lv_obj_t *)lv_timer_get_user_data(timer);
+
+              if (art == NULL) {
+                  return;
+              }
+
+              const size_t slide_count =
+                  sizeof(status_imgs) / sizeof(status_imgs[0]);
+
+              if (slide_count <= 1) {
+                  return;
+              }
+
+              const lv_image_dsc_t *current =
+                  (const lv_image_dsc_t *)lv_image_get_src(art);
+
+              size_t current_index = 0;
+
+              for (size_t i = 0; i < slide_count; i++) {
+                  if (status_imgs[i] == current) {
+                      current_index = i;
+                      break;
+                  }
+              }
+
+              current_index =
+                  (current_index + 1) % slide_count;
+
+              lv_image_set_src(
+                  art,
+                  status_imgs[current_index]
+              );
+          }
+          '''
+
+          # Only add the callback if it isn't already there.
+          if "static void status_slideshow_cb(" not in content:
+
+              callback_marker = (
+                  "// AUTO-GENERATED STATUS SLIDESHOW IMAGES END"
+              )
+
+              if callback_marker not in content:
+                  print(
+                      "Could not find generated status slideshow block."
+                  )
+                  exit(1)
+
+              content = content.replace(
+                  callback_marker,
+                  callback_marker
+                  + "\n\n"
+                  + slideshow_callback.strip()
+                  + "\n",
+                  1,
+              )
+
+          # --------------------------------------------------------
+          # Replace old hardcoded image initialization.
+          # --------------------------------------------------------
+
+          old_image_reference = (
+              "lv_image_set_src(art, &left);"
+          )
+
+          # If the old workflow already changed it to STATUS_IMAGE,
+          # remove that reference too.
+          old_status_reference = (
+              "lv_image_set_src(art, &STATUS_IMAGE);"
+          )
+
+          # --------------------------------------------------------
+          # Replace the image creation/initialization section.
+          #
+          # Current code:
+          #
+          #     lv_obj_t *art = lv_img_create(widget->obj);
+          #     lv_image_set_src(art, &left);
+          #     lv_obj_align(art, LV_ALIGN_TOP_LEFT, 0, 0);
+          #
+          # --------------------------------------------------------
+
+          old_init_pattern = re.compile(
+              r"""lv_obj_t \*art\s*=\s*lv_img_create\(widget->obj\);\s*
+              (?:lv_image_set_src\(art,\s*&left\);\s*)?
+              (?:lv_image_set_src\(art,\s*&STATUS_IMAGE\);\s*)?
+              lv_obj_align\(art,\s*LV_ALIGN_TOP_LEFT,\s*0,\s*0\);""",
+              re.DOTALL | re.VERBOSE,
+          )
+
+          new_init = """lv_obj_t *art = lv_img_create(widget->obj);
+
+              const size_t status_slide_count =
+                  sizeof(status_imgs) / sizeof(status_imgs[0]);
+
+              if (status_slide_count > 0) {
+                  lv_image_set_src(art, status_imgs[0]);
+              }
+
+              lv_obj_align(art, LV_ALIGN_TOP_LEFT, 0, 0);
+
+              lv_timer_create(
+                  status_slideshow_cb,
+                  1000,
+                  art
+              );"""
+
+          content, init_replacements = old_init_pattern.subn(
+              new_init,
+              content,
+              count=1,
+          )
+
+          if init_replacements == 0:
+              print(
+                  "Warning: Could not find the expected status.c "
+                  "image initialization block."
+              )
+
+              # Handle a partially modified status.c where the
+              # STATUS_IMAGE reference exists separately.
+              if old_status_reference in content:
+                  content = content.replace(
+                      old_status_reference,
+                      "lv_image_set_src(art, status_imgs[0]);",
+                      1,
+                  )
+
+              if old_image_reference in content:
+                  content = content.replace(
+                      old_image_reference,
+                      "lv_image_set_src(art, status_imgs[0]);",
+                      1,
+                  )
+
+          status_file.write_text(
+              content,
+              encoding="utf-8",
+          )
+
+          print(
+              f"Updated status.c with "
+              f"{len(left_images)} left images and "
+              f"{len(right_images)} right images."
+          )
+          PY
+
+      # ============================================================
+      # COMMIT
+      # ============================================================
+
+      - name: Commit and push changes
+        if: steps.check_images.outputs.images_exist == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          git add boards/shields/nice_view_xavient/widgets/left.c
+          git add boards/shields/nice_view_xavient/widgets/right.c
+          git add boards/shields/nice_view_xavient/widgets/peripheral_status.c
+          git add boards/shields/nice_view_xavient/widgets/status.c
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🤖 Auto-update Nice!View images and status slideshow."
             git push
-        fi
+          fi
+
+  # ================================================================
+  # TRIGGER ZMK BUILD
+  # ================================================================
+
+  trigger-zmk-build:
+    needs: update-images
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: Trigger zmk-config-xavient build
+        env:
+          GH_TOKEN: ${{ secrets.ZMK_CONFIG_PAT }}
+        run: |
+          gh workflow run "Build ZMK firmware" \
+            --repo yyevax/zmk-config-xavient \
+            --ref experimental/zmk-studio-3x6-displays
