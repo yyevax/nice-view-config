@@ -1,3 +1,228 @@
+Pasted text(20260914-032415).txt
+Document
+This is status.c
+
+Pasted text(20260914-032559).txt
+Document
+and this is the workflow
+
+
+Pasted text(20260914-032802).txt
+Document
+complete code?
+
+Pasted text(20260914-033302).txt
+Document
+here is the output for status.c
+
+do you see the issue?
+
+Because the GitHub Actions workflow you currently have only generates the slideshow block for peripheral_status.c.
+
+It does not generate that block for status.c.
+
+That's the key distinction.
+
+Your workflow has a step explicitly named:
+
+- name: Update peripheral_status.c for side-specific slideshow
+
+That Python code builds:
+
+LV_IMAGE_DECLARE(imageleftA);
+...
+LV_IMAGE_DECLARE(imageleftR);
+
+static const lv_image_dsc_t *anim_imgs[] = {
+    &imageleftA,
+    ...
+    &imageleftR,
+};
+
+and writes it into:
+
+boards/shields/nice_view_xavient/widgets/peripheral_status.c
+
+But the status.c step we added later only generates this:
+
+LV_IMAGE_DECLARE(left);
+#define STATUS_IMAGE left
+
+It never takes the converted/left/*.c files and generates:
+
+LV_IMAGE_DECLARE(imageleftA);
+LV_IMAGE_DECLARE(imageleftB);
+...
+LV_IMAGE_DECLARE(imageleftR);
+
+So the workflow isn't failing to copy them — we simply never told the workflow to put them into status.c.
+What you currently have
+
+                 converted/left/
+                       │
+          ┌────────────┴────────────┐
+          ↓                         ↓
+ peripheral_status.c             status.c
+          │                         │
+          │                         │
+ imageleftA-R                   left only
+          │
+          ↓
+      anim_imgs[]
+
+What you want is:
+
+                 converted/left/
+                       │
+          ┌────────────┴────────────┐
+          ↓                         ↓
+ peripheral_status.c             status.c
+          │                         │
+ imageleftA-R                  imageleftA-R
+          │                         │
+    anim_imgs[]                status_imgs[]
+
+And the same for right.
+
+So yes: we need to change the GitHub Actions Python generation step for status.c, not just add the STATUS_IMAGE declaration.
+
+Also, your current status.c itself still only displays one image:
+
+lv_image_set_src(art, &STATUS_IMAGE);
+
+So there are two things the workflow needs to generate for status.c:
+
+    All imageleftA-R / imagerightA-R declarations and array.
+
+    The slideshow code/timer that actually cycles through that array.
+
+That's why you're seeing the images in peripheral_status.c but not in status.c.
+
+If your goal is for status.c to behave exactly like peripheral_status.c with the same A–R slideshow, I can give you the corrected complete GitHub Actions workflow that generates both files identically.
+
+Pasted text(20260914-033510).txt
+Document
+
+Yes. Now that I can see the actual workflow, the problem is clear.
+
+Your workflow's peripheral_status.c step dynamically reads all converted images:
+
+left_images = sorted(
+    [p.stem for p in converted_left_dir.glob("*.c")]
+)
+
+and then generates declarations for every image.
+
+But your status.c step does none of that.
+
+It hardcodes:
+
+generated_block = """// AUTO-GENERATED STATUS IMAGE START
+#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
+LV_IMAGE_DECLARE(left);
+#define STATUS_IMAGE left
+...
+
+So that's exactly why.
+What we should change
+
+We should make the status.c generator work the same way as the peripheral_status.c generator:
+
+converted/left/
+    imageleftA.c
+    imageleftB.c
+    ...
+    imageleftR.c
+
+             ↓
+
+status.c
+
+LV_IMAGE_DECLARE(imageleftA);
+LV_IMAGE_DECLARE(imageleftB);
+...
+LV_IMAGE_DECLARE(imageleftR);
+
+static const lv_image_dsc_t *status_imgs[] = {
+    &imageleftA,
+    &imageleftB,
+    ...
+    &imageleftR,
+};
+
+And the right side similarly.
+But there's one more important thing
+
+Your current status.c doesn't have slideshow logic. It simply does:
+
+lv_image_set_src(art, &STATUS_IMAGE);
+
+So if we only generate status_imgs[], the images will be declared but nothing will actually cycle through them.
+
+We need to modify the workflow to generate both:
+
+    The image declarations/array.
+
+    The slideshow initialization/timer logic in status.c.
+
+The good news is that you already have almost all of the required slideshow logic in peripheral_status.c, so we can make status.c use the same pattern.
+I would change the workflow's status step to generate this
+
+For LEFT:
+
+// AUTO-GENERATED STATUS IMAGES START
+#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
+
+LV_IMAGE_DECLARE(imageleftA);
+LV_IMAGE_DECLARE(imageleftB);
+/* ... */
+LV_IMAGE_DECLARE(imageleftR);
+
+static const lv_image_dsc_t *status_imgs[] = {
+    &imageleftA,
+    &imageleftB,
+    /* ... */
+    &imageleftR,
+};
+
+#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
+
+LV_IMAGE_DECLARE(imagerightA);
+LV_IMAGE_DECLARE(imagerightB);
+/* ... */
+LV_IMAGE_DECLARE(imagerightR);
+
+static const lv_image_dsc_t *status_imgs[] = {
+    &imagerightA,
+    &imagerightB,
+    /* ... */
+    &imagerightR,
+};
+
+#endif
+// AUTO-GENERATED STATUS IMAGES END
+
+Then status.c would use:
+
+const size_t slide_count =
+    sizeof(status_imgs) / sizeof(status_imgs[0]);
+
+lv_image_set_src(art, status_imgs[0]);
+
+and a timer callback would advance the image.
+
+So your current workflow is not broken in the peripheral_status.c part. That part is doing exactly what you want. The missing functionality is entirely in the Update status.c for side-specific image step at lines 340–428.
+
+If you want status.c to have the exact same A→R slideshow behavior as peripheral_status.c, that's the version I would implement rather than just copying the declarations.
+
+yes so give the proper workflow
+
+Yes. The correct approach is to make the workflow generate the same A→R slideshow for status.c that it already generates for peripheral_status.c.
+
+I would also remove the old left/right STATUS_IMAGE approach entirely. The current workflow only generates that single-image configuration, which is why it isn't doing what you want.
+
+Below is the complete corrected workflow. The important change is the Update status.c for side-specific slideshow step.
+
 name: Update Nice!View Images
 
 on:
@@ -33,11 +258,14 @@ jobs:
       - name: Check for left and right images
         id: check_images
         run: |
-          if [ -d "assets/left" ] && [ -d "assets/right" ] && ([ "$(find assets/left -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) | wc -l)" -gt 0 ] || [ "$(find assets/right -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) | wc -l)" -gt 0 ]); then
-            echo "images_exist=true" >> $GITHUB_OUTPUT
+          if [ -d "assets/left" ] && [ -d "assets/right" ] && \
+             ([ "$(find assets/left -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) | wc -l)" -gt 0 ] || \
+              [ "$(find assets/right -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) | wc -l)" -gt 0 ]); then
+
+            echo "images_exist=true" >> "$GITHUB_OUTPUT"
             echo "Found images in assets/left or assets/right"
           else
-            echo "images_exist=false" >> $GITHUB_OUTPUT
+            echo "images_exist=false" >> "$GITHUB_OUTPUT"
             echo "No images found in assets/left or assets/right"
           fi
 
@@ -48,11 +276,15 @@ jobs:
           mkdir -p converted/left converted/right
 
           if [ -d "assets/left" ]; then
-            find assets/left -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) -exec python3 scripts/niceview_lvgl_convert.py {} --outdir converted/left \;
+            find assets/left -type f \
+              \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) \
+              -exec python3 scripts/niceview_lvgl_convert.py {} --outdir converted/left \;
           fi
 
           if [ -d "assets/right" ]; then
-            find assets/right -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) -exec python3 scripts/niceview_lvgl_convert.py {} --outdir converted/right \;
+            find assets/right -type f \
+              \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.bmp" -o -name "*.webp" \) \
+              -exec python3 scripts/niceview_lvgl_convert.py {} --outdir converted/right \;
           fi
 
       - name: Generate left.c and right.c files
@@ -64,6 +296,7 @@ jobs:
 
           def generate_combined_file(side):
               converted_dir = Path(f"converted/{side}")
+
               output_file = Path(
                   f"boards/shields/nice_view_xavient/widgets/{side}.c"
               )
@@ -71,6 +304,7 @@ jobs:
               files = sorted(converted_dir.glob("*.c"))
 
               body_parts = []
+
               macros = {
                   "LV_ATTRIBUTE_MEM_ALIGN",
                   "LV_ATTRIBUTE_LARGE_CONST",
@@ -142,10 +376,14 @@ jobs:
           generate_combined_file("right")
           PY
 
+      # ============================================================
+      # PERIPHERAL STATUS
+      # ============================================================
+
       - name: Update peripheral_status.c for side-specific slideshow
         if: steps.check_images.outputs.images_exist == 'true'
         run: |
-          python3 <<'EOF'
+          python3 <<'PY'
           import re
           from pathlib import Path
 
@@ -276,8 +514,8 @@ jobs:
 
               \s*lv_obj_align\(art,
               \s*widget->align_left
-              \? LV_ALIGN_TOP_LEFT
-              : LV_ALIGN_TOP_RIGHT,
+              \s*\? LV_ALIGN_TOP_LEFT
+              \s*: LV_ALIGN_TOP_RIGHT,
               \s*0,
               \s*0\);""",
               re.DOTALL | re.VERBOSE,
@@ -335,14 +573,21 @@ jobs:
               f"{len(left_images)} left images and "
               f"{len(right_images)} right images."
           )
-          EOF
+          PY
 
-      - name: Update status.c for side-specific image
+      # ============================================================
+      # STATUS.C
+      # ============================================================
+
+      - name: Update status.c for side-specific slideshow
         if: steps.check_images.outputs.images_exist == 'true'
         run: |
-          python3 <<'EOF'
-          from pathlib import Path
+          python3 <<'PY'
           import re
+          from pathlib import Path
+
+          converted_left_dir = Path("converted/left")
+          converted_right_dir = Path("converted/right")
 
           status_file = Path(
               "boards/shields/nice_view_xavient/widgets/status.c"
@@ -352,38 +597,103 @@ jobs:
               print("status.c not found; skipping.")
               exit(0)
 
+          left_images = sorted(
+              [p.stem for p in converted_left_dir.glob("*.c")]
+          )
+
+          right_images = sorted(
+              [p.stem for p in converted_right_dir.glob("*.c")]
+          )
+
+          if not left_images and not right_images:
+              print(
+                  "No converted images; skipping status.c modifications."
+              )
+              exit(0)
+
           content = status_file.read_text(encoding="utf-8")
 
-          # Remove previous auto-generated status image block.
+          # --------------------------------------------------------
+          # Remove previous generated status slideshow block
+          # --------------------------------------------------------
+
           auto_block_pattern = re.compile(
+              r'\n?// AUTO-GENERATED STATUS SLIDESHOW IMAGES START\n'
+              r'.*?'
+              r'// AUTO-GENERATED STATUS SLIDESHOW IMAGES END\n?',
+              re.DOTALL,
+          )
+
+          content = auto_block_pattern.sub("\n", content)
+
+          # Also remove the OLD STATUS_IMAGE block from the
+          # previous version of the workflow.
+          old_image_block_pattern = re.compile(
               r'\n?// AUTO-GENERATED STATUS IMAGE START\n'
               r'.*?'
               r'// AUTO-GENERATED STATUS IMAGE END\n?',
               re.DOTALL,
           )
 
-          content = auto_block_pattern.sub("\n", content)
+          content = old_image_block_pattern.sub("\n", content)
 
-          generated_block = """// AUTO-GENERATED STATUS IMAGE START
-          #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
-          LV_IMAGE_DECLARE(left);
-          #define STATUS_IMAGE left
-          #elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
-          LV_IMAGE_DECLARE(right);
-          #define STATUS_IMAGE right
-          #else
-          LV_IMAGE_DECLARE(right);
-          #define STATUS_IMAGE right
-          #endif
-          // AUTO-GENERATED STATUS IMAGE END
-          """
+          # --------------------------------------------------------
+          # Generate declarations
+          # --------------------------------------------------------
 
-          generated_block = "\n".join(
-              line.strip()
-              for line in generated_block.splitlines()
+          def declare_images(images):
+              return "\n".join(
+                  f"LV_IMAGE_DECLARE({stem});"
+                  for stem in images
+              )
+
+          # --------------------------------------------------------
+          # Generate status image array
+          # --------------------------------------------------------
+
+          def image_array(images):
+              lines = [
+                  "static const lv_image_dsc_t *status_imgs[] = {"
+              ]
+
+              lines.extend(
+                  f"    &{stem},"
+                  for stem in images
+              )
+
+              lines.append("};")
+
+              return "\n".join(lines)
+
+          generated_block = (
+              "// AUTO-GENERATED STATUS SLIDESHOW IMAGES START\n"
+
+              "#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || "
+              "IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)\n\n"
+
+              f"{declare_images(left_images)}\n\n"
+              f"{image_array(left_images)}\n\n"
+
+              "#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || "
+              "IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)\n\n"
+
+              f"{declare_images(right_images)}\n\n"
+              f"{image_array(right_images)}\n\n"
+
+              "#else\n\n"
+
+              f"{declare_images(right_images)}\n\n"
+              f"{image_array(right_images)}\n\n"
+
+              "#endif\n"
+
+              "// AUTO-GENERATED STATUS SLIDESHOW IMAGES END\n"
           )
 
-          # Insert the generated image declarations after the includes.
+          # --------------------------------------------------------
+          # Insert generated declarations after the includes
+          # --------------------------------------------------------
+
           include_marker = "#include <zmk/wpm.h>"
 
           if include_marker not in content:
@@ -399,34 +709,166 @@ jobs:
               1,
           )
 
-          # Replace the hardcoded left image.
-          old_image_reference = "lv_image_set_src(art, &left);"
-          new_image_reference = (
+          # --------------------------------------------------------
+          # Add slideshow callback
+          #
+          # We don't need to modify status.h or the widget struct.
+          # The callback determines the current image by comparing
+          # the current LVGL image source against status_imgs[].
+          # --------------------------------------------------------
+
+          slideshow_callback = r'''
+          static void status_slideshow_cb(lv_timer_t *timer) {
+              lv_obj_t *art = (lv_obj_t *)lv_timer_get_user_data(timer);
+
+              if (art == NULL) {
+                  return;
+              }
+
+              const size_t slide_count =
+                  sizeof(status_imgs) / sizeof(status_imgs[0]);
+
+              if (slide_count <= 1) {
+                  return;
+              }
+
+              const lv_image_dsc_t *current =
+                  (const lv_image_dsc_t *)lv_image_get_src(art);
+
+              size_t current_index = 0;
+
+              for (size_t i = 0; i < slide_count; i++) {
+                  if (status_imgs[i] == current) {
+                      current_index = i;
+                      break;
+                  }
+              }
+
+              current_index =
+                  (current_index + 1) % slide_count;
+
+              lv_image_set_src(
+                  art,
+                  status_imgs[current_index]
+              );
+          }
+          '''
+
+          # Only add the callback if it isn't already there.
+          if "static void status_slideshow_cb(" not in content:
+
+              callback_marker = (
+                  "// AUTO-GENERATED STATUS SLIDESHOW IMAGES END"
+              )
+
+              if callback_marker not in content:
+                  print(
+                      "Could not find generated status slideshow block."
+                  )
+                  exit(1)
+
+              content = content.replace(
+                  callback_marker,
+                  callback_marker
+                  + "\n\n"
+                  + slideshow_callback.strip()
+                  + "\n",
+                  1,
+              )
+
+          # --------------------------------------------------------
+          # Replace old hardcoded image initialization.
+          # --------------------------------------------------------
+
+          old_image_reference = (
+              "lv_image_set_src(art, &left);"
+          )
+
+          # If the old workflow already changed it to STATUS_IMAGE,
+          # remove that reference too.
+          old_status_reference = (
               "lv_image_set_src(art, &STATUS_IMAGE);"
           )
 
-          if old_image_reference in content:
-              content = content.replace(
-                  old_image_reference,
-                  new_image_reference,
-                  1,
-              )
-              print("Replaced hardcoded &left with &STATUS_IMAGE.")
-          elif new_image_reference in content:
-              print("status.c already uses STATUS_IMAGE.")
-          else:
+          # --------------------------------------------------------
+          # Replace the image creation/initialization section.
+          #
+          # Current code:
+          #
+          #     lv_obj_t *art = lv_img_create(widget->obj);
+          #     lv_image_set_src(art, &left);
+          #     lv_obj_align(art, LV_ALIGN_TOP_LEFT, 0, 0);
+          #
+          # --------------------------------------------------------
+
+          old_init_pattern = re.compile(
+              r"""lv_obj_t \*art\s*=\s*lv_img_create\(widget->obj\);\s*
+              (?:lv_image_set_src\(art,\s*&left\);\s*)?
+              (?:lv_image_set_src\(art,\s*&STATUS_IMAGE\);\s*)?
+              lv_obj_align\(art,\s*LV_ALIGN_TOP_LEFT,\s*0,\s*0\);""",
+              re.DOTALL | re.VERBOSE,
+          )
+
+          new_init = """lv_obj_t *art = lv_img_create(widget->obj);
+
+              const size_t status_slide_count =
+                  sizeof(status_imgs) / sizeof(status_imgs[0]);
+
+              if (status_slide_count > 0) {
+                  lv_image_set_src(art, status_imgs[0]);
+              }
+
+              lv_obj_align(art, LV_ALIGN_TOP_LEFT, 0, 0);
+
+              lv_timer_create(
+                  status_slideshow_cb,
+                  1000,
+                  art
+              );"""
+
+          content, init_replacements = old_init_pattern.subn(
+              new_init,
+              content,
+              count=1,
+          )
+
+          if init_replacements == 0:
               print(
-                  "Warning: could not find the expected image "
-                  "reference in status.c."
+                  "Warning: Could not find the expected status.c "
+                  "image initialization block."
               )
+
+              # Handle a partially modified status.c where the
+              # STATUS_IMAGE reference exists separately.
+              if old_status_reference in content:
+                  content = content.replace(
+                      old_status_reference,
+                      "lv_image_set_src(art, status_imgs[0]);",
+                      1,
+                  )
+
+                  if old_image_reference in content:
+                      content = content.replace(
+                          old_image_reference,
+                          "lv_image_set_src(art, status_imgs[0]);",
+                          1,
+                      )
 
           status_file.write_text(
               content,
               encoding="utf-8",
           )
 
-          print("Updated status.c with side-specific image configuration.")
-          EOF
+          print(
+              f"Updated status.c with "
+              f"{len(left_images)} left images and "
+              f"{len(right_images)} right images."
+          )
+          PY
+
+      # ============================================================
+      # COMMIT
+      # ============================================================
 
       - name: Commit and push changes
         if: steps.check_images.outputs.images_exist == 'true'
@@ -442,9 +884,13 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "🤖 Auto-update Nice!View images and status configuration."
+            git commit -m "🤖 Auto-update Nice!View images and status slideshow."
             git push
           fi
+
+  # ================================================================
+  # TRIGGER ZMK BUILD
+  # ================================================================
 
   trigger-zmk-build:
     needs: update-images
@@ -459,3 +905,65 @@ jobs:
           gh workflow run "Build ZMK firmware" \
             --repo yyevax/zmk-config-xavient \
             --ref experimental/zmk-studio-3x6-displays
+
+What this changes
+
+Your pipeline now becomes:
+
+assets/left/*.png
+        ↓
+converted/left/*.c
+        ↓
+        ├── left.c
+        │     ├── imageleftA
+        │     ├── imageleftB
+        │     └── ...
+        │
+        ├── peripheral_status.c
+        │     └── anim_imgs[]
+        │
+        └── status.c
+              └── status_imgs[]
+
+So status.c will now receive the same A–R images.
+
+For example, with your current assets it will generate:
+
+LV_IMAGE_DECLARE(imageleftA);
+LV_IMAGE_DECLARE(imageleftB);
+...
+LV_IMAGE_DECLARE(imageleftR);
+
+static const lv_image_dsc_t *status_imgs[] = {
+    &imageleftA,
+    &imageleftB,
+    ...
+    &imageleftR,
+};
+
+And for the right side:
+
+LV_IMAGE_DECLARE(imagerightA);
+...
+LV_IMAGE_DECLARE(imagerightR);
+
+One deliberate difference
+
+I removed this old approach from status.c:
+
+LV_IMAGE_DECLARE(left);
+#define STATUS_IMAGE left
+
+because that was only selecting one image.
+
+The generated status.c will instead use:
+
+status_imgs[]
+
+and cycle through the images every 1000 ms.
+
+So you no longer have two separate systems where peripheral_status.c gets A–R but status.c gets only left.
+
+One thing to be aware of: the workflow above assumes lv_image_get_src() is available in the LVGL version you're building against. If your ZMK/LVGL version doesn't expose that function, I'll change the callback to use a small timer state instead.
+
+
