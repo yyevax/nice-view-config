@@ -163,6 +163,8 @@ static const lv_image_dsc_t *anim_imgs[] = {
 
 
 
+
+
 // AUTO-GENERATED STATUS SLIDESHOW IMAGES START
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
 
