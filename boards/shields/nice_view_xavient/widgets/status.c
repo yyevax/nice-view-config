@@ -124,6 +124,8 @@ static const lv_image_dsc_t *status_imgs[] = {
 
 
 
+
+
 static void status_slideshow_cb(lv_timer_t *timer) {
     lv_obj_t *art = (lv_obj_t *)lv_timer_get_user_data(timer);
 
