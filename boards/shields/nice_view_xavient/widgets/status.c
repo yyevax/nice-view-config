@@ -26,18 +26,173 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/keymap.h>
 #include <zmk/wpm.h>
 
-// AUTO-GENERATED STATUS IMAGE START
+// AUTO-GENERATED STATUS SLIDESHOW IMAGES START
 #if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
-LV_IMAGE_DECLARE(left);
-#define STATUS_IMAGE left
+
+LV_IMAGE_DECLARE(imageleftA);
+LV_IMAGE_DECLARE(imageleftB);
+LV_IMAGE_DECLARE(imageleftC);
+LV_IMAGE_DECLARE(imageleftD);
+LV_IMAGE_DECLARE(imageleftE);
+LV_IMAGE_DECLARE(imageleftF);
+LV_IMAGE_DECLARE(imageleftG);
+LV_IMAGE_DECLARE(imageleftH);
+LV_IMAGE_DECLARE(imageleftI);
+LV_IMAGE_DECLARE(imageleftJ);
+LV_IMAGE_DECLARE(imageleftK);
+LV_IMAGE_DECLARE(imageleftL);
+LV_IMAGE_DECLARE(imageleftM);
+LV_IMAGE_DECLARE(imageleftN);
+LV_IMAGE_DECLARE(imageleftO);
+LV_IMAGE_DECLARE(imageleftP);
+LV_IMAGE_DECLARE(imageleftQ);
+LV_IMAGE_DECLARE(imageleftR);
+
+static const lv_image_dsc_t *status_imgs[] = {
+    &imageleftA,
+    &imageleftB,
+    &imageleftC,
+    &imageleftD,
+    &imageleftE,
+    &imageleftF,
+    &imageleftG,
+    &imageleftH,
+    &imageleftI,
+    &imageleftJ,
+    &imageleftK,
+    &imageleftL,
+    &imageleftM,
+    &imageleftN,
+    &imageleftO,
+    &imageleftP,
+    &imageleftQ,
+    &imageleftR,
+};
+
 #elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
-LV_IMAGE_DECLARE(right);
-#define STATUS_IMAGE right
+
+LV_IMAGE_DECLARE(imagerightA);
+LV_IMAGE_DECLARE(imagerightB);
+LV_IMAGE_DECLARE(imagerightC);
+LV_IMAGE_DECLARE(imagerightD);
+LV_IMAGE_DECLARE(imagerightE);
+LV_IMAGE_DECLARE(imagerightF);
+LV_IMAGE_DECLARE(imagerightG);
+LV_IMAGE_DECLARE(imagerightH);
+LV_IMAGE_DECLARE(imagerightI);
+LV_IMAGE_DECLARE(imagerightJ);
+LV_IMAGE_DECLARE(imagerightK);
+LV_IMAGE_DECLARE(imagerightL);
+LV_IMAGE_DECLARE(imagerightM);
+LV_IMAGE_DECLARE(imagerightN);
+LV_IMAGE_DECLARE(imagerightO);
+LV_IMAGE_DECLARE(imagerightP);
+LV_IMAGE_DECLARE(imagerightQ);
+LV_IMAGE_DECLARE(imagerightR);
+
+static const lv_image_dsc_t *status_imgs[] = {
+    &imagerightA,
+    &imagerightB,
+    &imagerightC,
+    &imagerightD,
+    &imagerightE,
+    &imagerightF,
+    &imagerightG,
+    &imagerightH,
+    &imagerightI,
+    &imagerightJ,
+    &imagerightK,
+    &imagerightL,
+    &imagerightM,
+    &imagerightN,
+    &imagerightO,
+    &imagerightP,
+    &imagerightQ,
+    &imagerightR,
+};
+
 #else
-LV_IMAGE_DECLARE(right);
-#define STATUS_IMAGE right
+
+LV_IMAGE_DECLARE(imagerightA);
+LV_IMAGE_DECLARE(imagerightB);
+LV_IMAGE_DECLARE(imagerightC);
+LV_IMAGE_DECLARE(imagerightD);
+LV_IMAGE_DECLARE(imagerightE);
+LV_IMAGE_DECLARE(imagerightF);
+LV_IMAGE_DECLARE(imagerightG);
+LV_IMAGE_DECLARE(imagerightH);
+LV_IMAGE_DECLARE(imagerightI);
+LV_IMAGE_DECLARE(imagerightJ);
+LV_IMAGE_DECLARE(imagerightK);
+LV_IMAGE_DECLARE(imagerightL);
+LV_IMAGE_DECLARE(imagerightM);
+LV_IMAGE_DECLARE(imagerightN);
+LV_IMAGE_DECLARE(imagerightO);
+LV_IMAGE_DECLARE(imagerightP);
+LV_IMAGE_DECLARE(imagerightQ);
+LV_IMAGE_DECLARE(imagerightR);
+
+static const lv_image_dsc_t *status_imgs[] = {
+    &imagerightA,
+    &imagerightB,
+    &imagerightC,
+    &imagerightD,
+    &imagerightE,
+    &imagerightF,
+    &imagerightG,
+    &imagerightH,
+    &imagerightI,
+    &imagerightJ,
+    &imagerightK,
+    &imagerightL,
+    &imagerightM,
+    &imagerightN,
+    &imagerightO,
+    &imagerightP,
+    &imagerightQ,
+    &imagerightR,
+};
+
 #endif
-// AUTO-GENERATED STATUS IMAGE END
+// AUTO-GENERATED STATUS SLIDESHOW IMAGES END
+
+static void status_slideshow_cb(lv_timer_t *timer) {
+    lv_obj_t *art = (lv_obj_t *)lv_timer_get_user_data(timer);
+
+    if (art == NULL) {
+        return;
+    }
+
+    const size_t slide_count =
+        sizeof(status_imgs) / sizeof(status_imgs[0]);
+
+    if (slide_count <= 1) {
+        return;
+    }
+
+    const lv_image_dsc_t *current =
+        (const lv_image_dsc_t *)lv_image_get_src(art);
+
+    size_t current_index = 0;
+
+    for (size_t i = 0; i < slide_count; i++) {
+        if (status_imgs[i] == current) {
+            current_index = i;
+            break;
+        }
+    }
+
+    current_index =
+        (current_index + 1) % slide_count;
+
+    lv_image_set_src(
+        art,
+        status_imgs[current_index]
+    );
+}
+
+
+
 
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
@@ -348,7 +503,7 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_obj_set_size(widget->obj, 160, 68);
     
     lv_obj_t *art = lv_img_create(widget->obj);
-    lv_image_set_src(art, &STATUS_IMAGE);
+    lv_image_set_src(art, status_imgs[0]);
     lv_obj_align(art, LV_ALIGN_TOP_LEFT, 0, 0);
     
     lv_obj_t *top = lv_canvas_create(widget->obj);
