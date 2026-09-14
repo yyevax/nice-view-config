@@ -27,7 +27,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/wpm.h>
 
 // AUTO-GENERATED STATUS SLIDESHOW IMAGES START
-#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
+#if IS_ENABLED(CONFIG_SHIELD_XAVIEN_LEFT_MASTER)
 
 LV_IMAGE_DECLARE(imageleftA);
 LV_IMAGE_DECLARE(imageleftB);
@@ -69,7 +69,7 @@ static const lv_image_dsc_t *status_imgs[] = {
     &imageleftR,
 };
 
-#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT) || IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
+#elif IS_ENABLED(CONFIG_SHIELD_XAVIEN_RIGHT_MASTER)
 
 LV_IMAGE_DECLARE(imagerightA);
 LV_IMAGE_DECLARE(imagerightB);
@@ -113,48 +113,12 @@ static const lv_image_dsc_t *status_imgs[] = {
 
 #else
 
-LV_IMAGE_DECLARE(imagerightA);
-LV_IMAGE_DECLARE(imagerightB);
-LV_IMAGE_DECLARE(imagerightC);
-LV_IMAGE_DECLARE(imagerightD);
-LV_IMAGE_DECLARE(imagerightE);
-LV_IMAGE_DECLARE(imagerightF);
-LV_IMAGE_DECLARE(imagerightG);
-LV_IMAGE_DECLARE(imagerightH);
-LV_IMAGE_DECLARE(imagerightI);
-LV_IMAGE_DECLARE(imagerightJ);
-LV_IMAGE_DECLARE(imagerightK);
-LV_IMAGE_DECLARE(imagerightL);
-LV_IMAGE_DECLARE(imagerightM);
-LV_IMAGE_DECLARE(imagerightN);
-LV_IMAGE_DECLARE(imagerightO);
-LV_IMAGE_DECLARE(imagerightP);
-LV_IMAGE_DECLARE(imagerightQ);
-LV_IMAGE_DECLARE(imagerightR);
-
-static const lv_image_dsc_t *status_imgs[] = {
-    &imagerightA,
-    &imagerightB,
-    &imagerightC,
-    &imagerightD,
-    &imagerightE,
-    &imagerightF,
-    &imagerightG,
-    &imagerightH,
-    &imagerightI,
-    &imagerightJ,
-    &imagerightK,
-    &imagerightL,
-    &imagerightM,
-    &imagerightN,
-    &imagerightO,
-    &imagerightP,
-    &imagerightQ,
-    &imagerightR,
-};
+#error "status.c requires CONFIG_SHIELD_XAVIEN_LEFT_MASTER or CONFIG_SHIELD_XAVIEN_RIGHT_MASTER"
 
 #endif
 // AUTO-GENERATED STATUS SLIDESHOW IMAGES END
+
+
 
 static void status_slideshow_cb(lv_timer_t *timer) {
     lv_obj_t *art = (lv_obj_t *)lv_timer_get_user_data(timer);
